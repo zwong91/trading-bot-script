@@ -1,0 +1,42 @@
+{
+  "name": "trading_bot-script",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "npm run init && npm run bot && npm run stop",
+    "init": "npx tsc && node dist/init.js",
+    "bot": "npx tsc && node dist/bot.js",
+    "stop": "npx tsc && node dist/stop.js",
+    "test": "npx tsc && node dist/test.js",
+    "serve": "node api/index.js",
+    "prettier": "prettier --write '**/*.{js,ts,json,md}'",
+    "db:up": "docker compose up -d mysql",
+    "db:down": "docker compose down",
+    "db:logs": "docker compose logs mysql",
+    "db:reset": "docker compose down -v && docker-compose up -d mysql",
+    "build": "npx tsc"
+  },
+  "keywords": [],
+  "author": "Hello",
+  "license": "ISC",
+  "dependencies": {
+    "@traderjoe-xyz/sdk": "5.0.12",
+    "@traderjoe-xyz/sdk-core": "2.0.11",
+    "@traderjoe-xyz/sdk-v2": "3.0.26",
+    "viem": "^2.9.9",
+    "cors": "^2.8.5",
+    "crypto-js": "^4.2.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "mysql": "^2.18.1",
+    "prettier": "^3.2.5"
+  },
+  "devDependencies": {
+    "@types/crypto-js": "^4.2.2",
+    "@types/mysql": "^2.15.26",
+    "@types/node": "^20.12.4",
+    "nodemon": "^3.1.0",
+    "typescript": "^5.4.4"
+  }
+}

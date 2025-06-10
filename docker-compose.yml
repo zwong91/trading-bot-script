@@ -1,0 +1,29 @@
+services:
+  mysql:
+    image: mysql:5.7
+    platform: linux/amd64
+    container_name: trading_bot_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-trading_root_2025}
+      MYSQL_DATABASE: trading_bot
+      MYSQL_USER: trading_user
+      MYSQL_PASSWORD: ${DB_PASSWORD:-trading_pass_2025}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - trading_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+volumes:
+  mysql_data:
+
+networks:
+  trading_network:
+    driver: bridge

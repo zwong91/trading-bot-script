@@ -1,0 +1,7 @@
+node_modules
+.env
+package-lock.json
+error.txt
+log.txt
+wallets.txt
+trade_error.txt
