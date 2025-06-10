@@ -181,14 +181,14 @@ app.get("/health", (req, res) => {
 });
 
 // Local instance
-// app.listen(5000, () => {
-//   console.log(`🚀 Server listening on port 5000`);
-//   console.log(`📊 Network: ${MODE === "dev" ? "BSC Testnet" : "BSC Mainnet"}`);
-//   console.log(`💰 Tokens:`);
-//   console.log(`   USDC: ${USDC_ADDRESS}`);
-//   console.log(`   USDT: ${USDT_ADDRESS}`);
-//   console.log(`   WBNB: ${WBNB_ADDRESS}`);
-// });
+app.listen(5000, () => {
+  console.log(`🚀 Server listening on port 5000`);
+  console.log(`📊 Network: ${MODE === "dev" ? "BSC Testnet" : "BSC Mainnet"}`);
+  console.log(`💰 Tokens:`);
+  console.log(`   USDC: ${USDC_ADDRESS}`);
+  console.log(`   USDT: ${USDT_ADDRESS}`);
+  console.log(`   WBNB: ${WBNB_ADDRESS}`);
+});
 
 // Vercel instance
 module.exports = app;

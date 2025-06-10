@@ -1,5 +1,5 @@
 import { WalletClient, formatUnits } from "viem";
-import { BASES, assetParams } from "./const";
+import { BASES, assetParams, initializeRouter } from "./const";
 import { trade, getRoute } from "./trade";
 import {
   createClient,
@@ -23,6 +23,10 @@ async function run() {
   validateInputs();
   validateWalletsFile();
   try {
+    // 初始化路由器
+    console.log("🔧 初始化交易路由器...");
+    await initializeRouter();
+    
     await connectDB();
 
     const InToken: { [key: `0x${string}`]: number } = {};

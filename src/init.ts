@@ -1,5 +1,5 @@
 import { WalletClient } from "viem";
-import { BASES, assetParams, wallets_count } from "./const";
+import { BASES, assetParams, wallets_count, initializeRouter } from "./const";
 import { createClient, keyGen, validateInputs } from "./utils";
 import {
   gen_key,
@@ -18,6 +18,10 @@ async function run() {
   const PRIVATE_KEYS: string[] = [];
   validateInputs();
   try {
+    // 首先初始化动态路由器
+    console.log("🔧 初始化路由器配置...");
+    await initializeRouter();
+    
     await connectDB();
 
     for (let i = 0; i < wallets_count; i++) {

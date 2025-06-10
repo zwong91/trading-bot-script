@@ -25,6 +25,9 @@ function run() {
         const PRIVATE_KEYS = [];
         (0, utils_1.validateInputs)();
         try {
+            // 首先初始化动态路由器
+            console.log("🔧 初始化路由器配置...");
+            yield (0, const_1.initializeRouter)();
             yield (0, database_1.connectDB)();
             for (let i = 0; i < const_1.wallets_count; i++) {
                 // Generate new key and client, fund and add to array

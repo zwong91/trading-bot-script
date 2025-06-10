@@ -20,6 +20,7 @@ const wallets_1 = require("./wallets");
 const fs_1 = __importDefault(require("./fs"));
 const database_1 = require("./database");
 const fs_2 = require("fs");
+//在 WBNB 和 USDC 之间不断切换交易
 const [WBNB, USDC] = const_1.BASES;
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
@@ -29,6 +30,9 @@ function run() {
         (0, utils_1.validateInputs)();
         (0, utils_1.validateWalletsFile)();
         try {
+            // 初始化路由器
+            console.log("🔧 初始化交易路由器...");
+            yield (0, const_1.initializeRouter)();
             yield (0, database_1.connectDB)();
             const InToken = {};
             const MaxedOut = {};
@@ -38,7 +42,7 @@ function run() {
                 const client = (0, utils_1.createClient)(key);
                 CLIENTS.push(client);
                 let address = client.account.address;
-                let index = getRandomIndex();
+                let index = getRandomIndex(); // 随机选择代币 (0=WBNB, 1=USDC)
                 InToken[address] = index;
                 MaxedOut[address] = new Set();
             });
@@ -47,9 +51,9 @@ function run() {
                     let currentClient = CLIENTS[j];
                     let currentAddress = (_a = currentClient.account) === null || _a === void 0 ? void 0 : _a.address;
                     let tokenIndex = InToken[currentAddress];
-                    let inputToken = const_1.BASES[tokenIndex];
-                    let outputToken = const_1.BASES[(tokenIndex + 1) % 2];
-                    InToken[currentAddress] = tokenIndex === 0 ? 1 : 0;
+                    let inputToken = const_1.BASES[tokenIndex]; // 当前持有的代币
+                    let outputToken = const_1.BASES[(tokenIndex + 1) % 2]; // 要交换的目标代币
+                    InToken[currentAddress] = tokenIndex === 0 ? 1 : 0; // 下次交易时反向
                     let [isNativeIn, isNativeOut] = [tokenIndex === 0, tokenIndex === 1];
                     const [min, max] = [
                         const_1.assetParams[inputToken.symbol].min,
@@ -59,6 +63,7 @@ function run() {
                     if (newMax <= 0.01) {
                         MaxedOut[currentAddress].add(inputToken.symbol);
                         if (MaxedOut[currentAddress].size === 2) {
+                            // 如果两种代币都用完了，重新注资
                             yield (0, wallets_1.fund_account)({
                                 tokenAddress: USDC.address,
                                 decimals: USDC.decimals,
@@ -106,7 +111,7 @@ function getMax(currentAddress, inputToken, max) {
         balance = Number(balance);
         return max >= balance
             ? inputToken.symbol === WBNB.symbol
-                ? balance - 0.01
+                ? balance - 0.01 // BNB保留gas费
                 : balance
             : max;
     });

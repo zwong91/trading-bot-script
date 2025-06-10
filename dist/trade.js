@@ -22,8 +22,9 @@ const const_1 = require("./const");
 const utils_1 = require("./utils");
 const fs_1 = __importDefault(require("./fs"));
 const database_1 = require("./database");
+const pancakeswap_trade_1 = require("./pancakeswap-trade");
 (0, dotenv_1.config)();
-const { LBRouterV22ABI } = sdk_v2_1.jsonAbis;
+const { LBRouterV21ABI } = sdk_v2_1.jsonAbis;
 function getRoute(routeParams) {
     try {
         const { amount, inputToken, outputToken, isNativeIn, isNativeOut } = routeParams;
@@ -60,6 +61,21 @@ function getRoute(routeParams) {
 function trade(walletClient, route) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
+            // 检查当前使用的路由器类型
+            if (const_1.routerConfig && const_1.routerConfig.type === "pancakeswap") {
+                console.log("🥞 使用 PancakeSwap 交易逻辑");
+                const pancakeRoute = (0, pancakeswap_trade_1.getPancakeSwapRoute)({
+                    amount: route.amountIn.toExact(),
+                    inputToken: route.amountIn.token,
+                    outputToken: route.outputToken,
+                    isNativeIn: route.isNativeIn,
+                    isNativeOut: route.isNativeOut,
+                });
+                yield (0, pancakeswap_trade_1.tradePancakeSwap)(walletClient, pancakeRoute, const_1.router);
+                return;
+            }
+            // TraderJoe 交易逻辑
+            console.log("🎯 使用 TraderJoe 交易逻辑");
             const account = walletClient.account;
             const { allRoutes, amountIn, outputToken, isExactIn, isNativeIn, isNativeOut, } = route;
             // generates all possible TradeV2 instances
@@ -97,7 +113,7 @@ function trade(walletClient, route) {
             try {
                 const { request } = yield const_1.publicClient.simulateContract({
                     address: const_1.router,
-                    abi: LBRouterV22ABI,
+                    abi: LBRouterV21ABI,
                     functionName: methodName,
                     args: args,
                     account,

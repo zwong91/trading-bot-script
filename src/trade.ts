@@ -13,13 +13,14 @@ import {
   parseUnits,
 } from "viem";
 import { config } from "dotenv";
-import { publicClient, BASES, CHAIN_ID, router } from "./const";
+import { publicClient, BASES, CHAIN_ID, router, routerConfig } from "./const";
 import { getNonce, getUnixTime } from "./utils";
 import log from "./fs";
 import { insertDB, txn_sql } from "./database";
+import { getPancakeSwapRoute, tradePancakeSwap } from "./pancakeswap-trade";
 
 config();
-const { LBRouterV22ABI } = jsonAbis;
+const { LBRouterV21ABI } = jsonAbis;
 
 interface GetRouteParams {
   amount: string; // e.g. "20", "0.1"
@@ -88,6 +89,22 @@ interface Route {
 }
 async function trade(walletClient: WalletClient, route: Route) {
   try {
+    // 检查当前使用的路由器类型
+    if (routerConfig && routerConfig.type === "pancakeswap") {
+      console.log("🥞 使用 PancakeSwap 交易逻辑");
+      const pancakeRoute = getPancakeSwapRoute({
+        amount: route.amountIn.toExact(),
+        inputToken: route.amountIn.token,
+        outputToken: route.outputToken,
+        isNativeIn: route.isNativeIn,
+        isNativeOut: route.isNativeOut,
+      });
+      await tradePancakeSwap(walletClient, pancakeRoute, router);
+      return;
+    }
+    
+    // TraderJoe 交易逻辑
+    console.log("🎯 使用 TraderJoe 交易逻辑");
     const account = walletClient.account!;
     const {
       allRoutes,
@@ -156,7 +173,7 @@ async function trade(walletClient: WalletClient, route: Route) {
     try {
       const { request } = await publicClient.simulateContract({
         address: router,
-        abi: LBRouterV22ABI,
+        abi: LBRouterV21ABI,
         functionName: methodName,
         args: args,
         account,
