@@ -10,7 +10,6 @@ const { getBalance, decryptKey } = require("../dist/utils");
 const path = require("path");
 
 // Import your local functions
-// import { swapAnyTokens } from "../dist/swapAnyTokens.js";
 // Note: We'll use require for now to avoid ES module issues
 const { swapAnyTokens } = require("../dist/swapAnyTokens.js");
 const { addLiquidityUSDCUSDT, addLiquidityBNBUSDC } = require("../dist/addLiquidity.js");
@@ -40,34 +39,79 @@ app.use(bodyParser.json());
 
 app.get("/api", async (req, res) => {
   try {
-    await connectDB();
-    const results = await fetchDB();
+    let results = [];
+    try {
+      await connectDB();
+      results = await fetchDB();
+    } catch (dbError) {
+      console.warn("Database connection failed:", dbError.message);
+    } finally {
+      try {
+        await closeDB();
+      } catch (closeError) {
+        console.warn("Database close error (non-critical):", closeError.message);
+      }
+    }
     res.json(results);
   } catch (error) {
-    res.status(500).json({ error: error.message });
-  } finally {
-    await closeDB();
+    console.error("API endpoint error:", error);
+    res.json([]); // Return empty array instead of error
   }
 });
 
 // Trading dashboard endpoint
 app.get("/dashboard", async (req, res) => {
   try {
-    await connectDB();
-    const trades = await fetchDB();
-    
-    // Calculate statistics
-    const stats = calculateTradingStats(trades);
+    let trades = [];
+    let stats = {
+      totalTrades: 0,
+      totalVolume: "0.00",
+      uniqueWallets: 0,
+      averageTradeSize: "0.00",
+      tokenBreakdown: {},
+      firstTrade: null,
+      lastTrade: null
+    };
+
+    try {
+      await connectDB();
+      trades = await fetchDB();
+      stats = calculateTradingStats(trades);
+    } catch (dbError) {
+      console.warn("Database connection failed, using default values:", dbError.message);
+      // Continue with default empty values instead of throwing error
+    } finally {
+      try {
+        await closeDB();
+      } catch (closeError) {
+        console.warn("Database close error (non-critical):", closeError.message);
+      }
+    }
     
     res.json({
       trades,
       stats,
-      network: MODE === "dev" ? "BSC Testnet" : "BSC Mainnet"
+      network: MODE === "dev" ? "BSC Testnet" : "BSC Mainnet",
+      status: trades.length > 0 ? "connected" : "no_data"
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
-  } finally {
-    await closeDB();
+    console.error("Dashboard endpoint error:", error);
+    // Return default data instead of error
+    res.json({
+      trades: [],
+      stats: {
+        totalTrades: 0,
+        totalVolume: "0.00",
+        uniqueWallets: 0,
+        averageTradeSize: "0.00",
+        tokenBreakdown: {},
+        firstTrade: null,
+        lastTrade: null
+      },
+      network: MODE === "dev" ? "BSC Testnet" : "BSC Mainnet",
+      status: "error",
+      error: error.message
+    });
   }
 });
 

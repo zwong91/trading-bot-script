@@ -317,6 +317,14 @@
                 const response = await fetch('/dashboard');
                 const data = await response.json();
                 
+                if (data.status === "error") {
+                    console.warn('Dashboard data unavailable:', data.error);
+                    // Show default/empty state
+                    updateStats(data.stats);
+                    updateTrades([]);
+                    return;
+                }
+                
                 // Update stats
                 updateStats(data.stats);
                 
@@ -325,6 +333,8 @@
                 
             } catch (error) {
                 console.error('Error loading dashboard:', error);
+                // Show error message to user
+                showResult('tradesContainer', 'Failed to load dashboard data. Trading functions still available.', 'error');
             }
         }
 
