@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const bodyParser = require("body-parser");
 const dotenv = require("dotenv");
 const { connectDB, closeDB, fetchDB } = require("../dist/database");
 const { formatUnits } = require("viem");
@@ -7,6 +8,13 @@ const { privateKeyToAddress } = require("viem/accounts");
 const { readFileSync } = require("fs");
 const { getBalance, decryptKey } = require("../dist/utils");
 const path = require("path");
+
+// Import your local functions
+// import { swapAnyTokens } from "../dist/swapAnyTokens.js";
+// Note: We'll use require for now to avoid ES module issues
+const { swapAnyTokens } = require("../dist/swapAnyTokens.js");
+const { addLiquidityUSDCUSDT, addLiquidityBNBUSDC } = require("../dist/addLiquidity.js");
+const { removeLiquidityUSDCUSDT, removeLiquidityBNBUSDC, getLiquidityInfo, removeLiquidityTraderJoeUSDCUSDT } = require("../dist/removeLiquidity.js");
 
 dotenv.config();
 
@@ -28,6 +36,7 @@ const WBNB_ADDRESS = MODE === "dev"
 
 const app = express();
 app.use(cors());
+app.use(bodyParser.json());
 
 app.get("/api", async (req, res) => {
   try {
@@ -40,6 +49,287 @@ app.get("/api", async (req, res) => {
     await closeDB();
   }
 });
+
+// Trading dashboard endpoint
+app.get("/dashboard", async (req, res) => {
+  try {
+    await connectDB();
+    const trades = await fetchDB();
+    
+    // Calculate statistics
+    const stats = calculateTradingStats(trades);
+    
+    res.json({
+      trades,
+      stats,
+      network: MODE === "dev" ? "BSC Testnet" : "BSC Mainnet"
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  } finally {
+    await closeDB();
+  }
+});
+
+// Swap endpoint
+app.post("/swap", async (req, res) => {
+  try {
+    const { symbolIn, symbolOut, amountIn } = req.body;
+    console.log("Received swap request:", { symbolIn, symbolOut, amountIn });
+
+    if (!symbolIn || !symbolOut || !amountIn) {
+      console.log("Missing required parameters");
+      return res
+        .status(400)
+        .json({ error: "Please provide symbolIn, symbolOut, and amountIn" });
+    }
+
+    console.log("Calling swapAnyTokens with:", { symbolIn, symbolOut, amountIn });
+    const txHash = await swapAnyTokens(symbolIn, symbolOut, amountIn);
+    console.log("Swap successful, txHash:", txHash);
+    return res.json({ message: "Swap completed", txHash });
+  } catch (err) {
+    console.error("Swap error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Add Liquidity endpoints
+app.post("/add-liquidity", async (req, res) => {
+  try {
+    const { type, amount1, amount2, binStep = "1", slippage = 0.5 } = req.body;// Default binStep to "1"
+    console.log("Received add liquidity request:", { type, amount1, amount2, binStep, slippage });
+
+    if (!type || !amount1 || !amount2) {
+      console.log("Missing required parameters");
+      return res
+        .status(400)
+        .json({ error: "Please provide type, amount1, and amount2" });
+    }
+
+    let txHash;
+    if (type === "usdc-usdt") {
+      console.log("Adding USDC-USDT liquidity:", { amount1, amount2, slippage });
+      txHash = await addLiquidityUSDCUSDT(amount1, amount2, slippage);
+    } else if (type === "bnb-usdc") {
+      console.log("Adding BNB-USDC liquidity:", { amount1, amount2, slippage });
+      txHash = await addLiquidityBNBUSDC(amount1, amount2, slippage);
+    } else {
+      return res.status(400).json({ error: "Invalid liquidity type. Use 'usdc-usdt' or 'bnb-usdc'" });
+    }
+
+    console.log("Add liquidity successful, txHash:", txHash);
+    return res.json({ message: "Liquidity added successfully", txHash, type });
+  } catch (err) {
+    console.error("Add liquidity error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Remove liquidity endpoint
+app.post("/remove-liquidity", async (req, res) => {
+  try {
+    const { type, percentage = "100", slippage = 0.5, protocol = "pancakeswap" } = req.body;
+    console.log("Received remove liquidity request:", { type, percentage, slippage, protocol });
+
+    if (!type) {
+      console.log("Missing required parameters");
+      return res
+        .status(400)
+        .json({ error: "Please provide type" });
+    }
+
+    // Validate percentage
+    const liquidityPercentage = parseFloat(percentage);
+    if (isNaN(liquidityPercentage) || liquidityPercentage <= 0 || liquidityPercentage > 100) {
+      return res.status(400).json({ error: "Percentage must be between 0 and 100" });
+    }
+
+    let txHash;
+    if (protocol === "traderjoe") {
+      // TraderJoe V2.2 liquidity removal
+      if (type === "usdc-usdt") {
+        console.log("Removing TraderJoe USDC-USDT liquidity:", { percentage, slippage });
+        txHash = await removeLiquidityTraderJoeUSDCUSDT(percentage.toString(), slippage);
+      } else {
+        return res.status(400).json({ error: "TraderJoe only supports 'usdc-usdt' for now" });
+      }
+    } else {
+      // PancakeSwap V2 liquidity removal (default)
+      if (type === "usdc-usdt") {
+        console.log("Removing PancakeSwap USDC-USDT liquidity:", { percentage, slippage });
+        txHash = await removeLiquidityUSDCUSDT(percentage.toString(), slippage);
+      } else if (type === "bnb-usdc") {
+        console.log("Removing PancakeSwap BNB-USDC liquidity:", { percentage, slippage });
+        txHash = await removeLiquidityBNBUSDC(percentage.toString(), slippage);
+      } else {
+        return res.status(400).json({ error: "Invalid liquidity type. Use 'usdc-usdt' or 'bnb-usdc'" });
+      }
+    }
+
+    console.log("Remove liquidity successful, txHash:", txHash);
+    return res.json({ 
+      message: "Liquidity removed successfully", 
+      txHash, 
+      type, 
+      percentage: `${percentage}%`,
+      protocol: protocol || "pancakeswap"
+    });
+  } catch (err) {
+    console.error("Remove liquidity error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Get liquidity info endpoint
+app.get("/liquidity-info/:type", async (req, res) => {
+  try {
+    const { type } = req.params;
+    console.log("Received liquidity info request for type:", type);
+
+    if (!type || (type !== "usdc-usdt" && type !== "bnb-usdc")) {
+      return res.status(400).json({ error: "Invalid liquidity type. Use 'usdc-usdt' or 'bnb-usdc'" });
+    }
+
+    const liquidityInfo = await getLiquidityInfo(type);
+    console.log("Liquidity info retrieved:", liquidityInfo);
+
+    return res.json({
+      type,
+      liquidityInfo,
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error("Get liquidity info error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Trading visualization data endpoint
+app.get("/trading-chart", async (req, res) => {
+  try {
+    await connectDB();
+    const trades = await fetchDB();
+    
+    // Prepare data for charts
+    const chartData = prepareChartData(trades);
+    
+    res.json(chartData);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  } finally {
+    await closeDB();
+  }
+});
+
+function calculateTradingStats(trades) {
+  if (!trades || trades.length === 0) {
+    return {
+      totalTrades: 0,
+      totalVolume: 0,
+      uniqueWallets: 0,
+      averageTradeSize: 0,
+      tokenBreakdown: {},
+      profitLoss: 0
+    };
+  }
+
+  const totalTrades = trades.length;
+  const uniqueWallets = [...new Set(trades.map(t => t.wallet_address))].length;
+  
+  // Calculate volumes
+  let totalVolumeUSD = 0;
+  const tokenBreakdown = {};
+  
+  trades.forEach(trade => {
+    // Estimate USD value (simplified - using rough BNB price)
+    const bnbPrice = 300; // Approximate BNB price in USD
+    let usdValue = 0;
+    
+    if (trade.swap_from_token === 'WBNB') {
+      usdValue = trade.amount_from * bnbPrice;
+    } else if (trade.swap_from_token === 'USDC' || trade.swap_from_token === 'USDT') {
+      usdValue = trade.amount_from;
+    }
+    
+    totalVolumeUSD += usdValue;
+    
+    // Token breakdown
+    const fromToken = trade.swap_from_token;
+    const toToken = trade.swap_to_token;
+    
+    if (!tokenBreakdown[fromToken]) tokenBreakdown[fromToken] = { volume: 0, count: 0 };
+    if (!tokenBreakdown[toToken]) tokenBreakdown[toToken] = { volume: 0, count: 0 };
+    
+    tokenBreakdown[fromToken].volume += trade.amount_from;
+    tokenBreakdown[fromToken].count += 1;
+  });
+
+  return {
+    totalTrades,
+    totalVolume: totalVolumeUSD.toFixed(2),
+    uniqueWallets,
+    averageTradeSize: (totalVolumeUSD / totalTrades).toFixed(2),
+    tokenBreakdown,
+    firstTrade: trades[0]?.created_at,
+    lastTrade: trades[trades.length - 1]?.created_at
+  };
+}
+
+function prepareChartData(trades) {
+  if (!trades || trades.length === 0) {
+    return { timeSeriesData: [], tokenDistribution: [], volumeData: [] };
+  }
+
+  // Time series data for trading activity
+  const timeSeriesData = trades.map((trade, index) => ({
+    id: trade.id,
+    timestamp: new Date(trade.created_at).getTime(),
+    date: new Date(trade.created_at).toLocaleDateString(),
+    time: new Date(trade.created_at).toLocaleTimeString(),
+    fromToken: trade.swap_from_token,
+    toToken: trade.swap_to_token,
+    amountFrom: trade.amount_from,
+    amountTo: trade.amount_to,
+    txHash: trade.tx_hash,
+    wallet: trade.wallet_address.slice(0, 10) + "...",
+    tradeNumber: index + 1
+  }));
+
+  // Token distribution
+  const tokenCounts = {};
+  trades.forEach(trade => {
+    tokenCounts[trade.swap_from_token] = (tokenCounts[trade.swap_from_token] || 0) + 1;
+    tokenCounts[trade.swap_to_token] = (tokenCounts[trade.swap_to_token] || 0) + 1;
+  });
+
+  const tokenDistribution = Object.entries(tokenCounts).map(([token, count]) => ({
+    token,
+    count,
+    percentage: ((count / (trades.length * 2)) * 100).toFixed(1)
+  }));
+
+  // Volume data by hour
+  const hourlyVolume = {};
+  trades.forEach(trade => {
+    const hour = new Date(trade.created_at).getHours();
+    const key = `${hour}:00`;
+    if (!hourlyVolume[key]) hourlyVolume[key] = { hour: key, volume: 0, trades: 0 };
+    hourlyVolume[key].volume += trade.amount_from;
+    hourlyVolume[key].trades += 1;
+  });
+
+  const volumeData = Object.values(hourlyVolume).sort((a, b) => 
+    parseInt(a.hour) - parseInt(b.hour)
+  );
+
+  return {
+    timeSeriesData,
+    tokenDistribution,
+    volumeData,
+    totalTrades: trades.length
+  };
+}
 
 async function getWalletBalance(address) {
   try {
@@ -188,7 +478,21 @@ app.listen(5000, () => {
   console.log(`   USDC: ${USDC_ADDRESS}`);
   console.log(`   USDT: ${USDT_ADDRESS}`);
   console.log(`   WBNB: ${WBNB_ADDRESS}`);
+  console.log(`🌐 Dashboard: http://localhost:5000/`);
 });
+
+// Serve dashboard HTML
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "../public/dashboard.html"));
+});
+
+// Serve trading dashboard
+app.get("/trading", (req, res) => {
+  res.sendFile(path.join(__dirname, "../public/trading.html"));
+});
+
+// Serve static files
+app.use(express.static(path.join(__dirname, "../public")));
 
 // Vercel instance
 module.exports = app;

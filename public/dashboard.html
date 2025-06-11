@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Bot Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 30px;
+            background: #f8f9fa;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .charts-section {
+            padding: 30px;
+        }
+
+        .chart-container {
+            margin-bottom: 40px;
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+
+        .chart-title {
+            font-size: 1.5rem;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .trades-table {
+            margin-top: 30px;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+
+        .table-container {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background: #2c3e50;
+            color: white;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .token-badge {
+            background: #3498db;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .amount {
+            font-family: monospace;
+            font-weight: bold;
+        }
+
+        .tx-hash {
+            font-family: monospace;
+            color: #7f8c8d;
+            cursor: pointer;
+        }
+
+        .tx-hash:hover {
+            color: #3498db;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #7f8c8d;
+        }
+
+        .error {
+            background: #e74c3c;
+            color: white;
+            padding: 20px;
+            margin: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .refresh-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin: 20px;
+            transition: background 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            background: #2980b9;
+        }
+
+        .swap-section {
+            background: white;
+            margin: 20px;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+
+        .swap-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr auto;
+            gap: 15px;
+            align-items: end;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .form-group input, .form-group select {
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .swap-btn {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: background 0.3s ease;
+        }
+
+        .swap-btn:hover {
+            background: #229954;
+        }
+
+        .swap-btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 768px) {
+            .swap-form {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Trading Bot Dashboard</h1>
+            <p>Real-time trading analytics and performance metrics</p>
+            <button class="refresh-btn" onclick="loadDashboard()">🔄 Refresh Data</button>
+        </div>
+
+        <!-- Swap Section -->
+        <div class="swap-section">
+            <h2 class="chart-title">💱 Manual Swap</h2>
+            <div class="swap-form">
+                <div class="form-group">
+                    <label for="symbolIn">From Token</label>
+                    <select id="symbolIn">
+                        <option value="WBNB">WBNB</option>
+                        <option value="USDC">USDC</option>
+                        <option value="USDT">USDT</option>
+                        <option value="BNB">BNB</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="symbolOut">To Token</label>
+                    <select id="symbolOut">
+                        <option value="USDC">USDC</option>
+                        <option value="WBNB">WBNB</option>
+                        <option value="USDT">USDT</option>
+                        <option value="BNB">BNB</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="amountIn">Amount</label>
+                    <input type="number" id="amountIn" placeholder="0.01" step="0.01" min="0.01">
+                </div>
+                <button class="swap-btn" onclick="executeSwap()">🔄 Swap</button>
+            </div>
+            <div id="swapResult" style="margin-top: 20px;"></div>
+        </div>
+
+        <div class="stats-grid" id="statsGrid">
+            <div class="loading">Loading dashboard data...</div>
+        </div>
+
+        <div class="charts-section" id="chartsSection" style="display: none;">
+            <div class="chart-container">
+                <h3 class="chart-title">📊 Token Distribution</h3>
+                <canvas id="tokenChart"></canvas>
+            </div>
+
+            <div class="chart-container">
+                <h3 class="chart-title">📈 Trading Volume by Hour</h3>
+                <canvas id="volumeChart"></canvas>
+            </div>
+
+            <div class="chart-container">
+                <h3 class="chart-title">⏰ Trading Timeline</h3>
+                <canvas id="timelineChart"></canvas>
+            </div>
+        </div>
+
+        <div class="trades-table" id="tradesTable" style="display: none;">
+            <h3 class="chart-title" style="padding: 20px;">🔄 Recent Trades</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Time</th>
+                            <th>From</th>
+                            <th>To</th>
+                            <th>Amount In</th>
+                            <th>Amount Out</th>
+                            <th>Wallet</th>
+                            <th>TX Hash</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tradesTableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let dashboardData = null;
+
+        async function loadDashboard() {
+            try {
+                const response = await fetch('/dashboard');
+                dashboardData = await response.json();
+                
+                renderStats(dashboardData.stats);
+                renderCharts(dashboardData.trades);
+                renderTradesTable(dashboardData.trades);
+                
+                document.getElementById('chartsSection').style.display = 'block';
+                document.getElementById('tradesTable').style.display = 'block';
+            } catch (error) {
+                document.getElementById('statsGrid').innerHTML = 
+                    `<div class="error">Failed to load dashboard data: ${error.message}</div>`;
+            }
+        }
+
+        function renderStats(stats) {
+            const statsGrid = document.getElementById('statsGrid');
+            statsGrid.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-value">${stats.totalTrades}</div>
+                    <div class="stat-label">Total Trades</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">$${stats.totalVolume}</div>
+                    <div class="stat-label">Total Volume</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${stats.uniqueWallets}</div>
+                    <div class="stat-label">Active Wallets</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">$${stats.averageTradeSize}</div>
+                    <div class="stat-label">Avg Trade Size</div>
+                </div>
+            `;
+        }
+
+        function renderCharts(trades) {
+            if (!trades || trades.length === 0) return;
+
+            // Token distribution chart
+            const tokenCounts = {};
+            trades.forEach(trade => {
+                tokenCounts[trade.swap_from_token] = (tokenCounts[trade.swap_from_token] || 0) + 1;
+                tokenCounts[trade.swap_to_token] = (tokenCounts[trade.swap_to_token] || 0) + 1;
+            });
+
+            new Chart(document.getElementById('tokenChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(tokenCounts),
+                    datasets: [{
+                        data: Object.values(tokenCounts),
+                        backgroundColor: ['#3498db', '#e74c3c', '#f39c12', '#27ae60'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+
+            // Volume by hour chart
+            const hourlyData = {};
+            trades.forEach(trade => {
+                const hour = new Date(trade.created_at).getHours();
+                hourlyData[hour] = (hourlyData[hour] || 0) + trade.amount_from;
+            });
+
+            const hours = Array.from({length: 24}, (_, i) => i);
+            const volumeData = hours.map(hour => hourlyData[hour] || 0);
+
+            new Chart(document.getElementById('volumeChart'), {
+                type: 'bar',
+                data: {
+                    labels: hours.map(h => `${h}:00`),
+                    datasets: [{
+                        label: 'Trading Volume',
+                        data: volumeData,
+                        backgroundColor: '#3498db',
+                        borderRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            // Timeline chart
+            const timelineData = trades.map((trade, index) => ({
+                x: new Date(trade.created_at).getTime(),
+                y: trade.amount_from
+            }));
+
+            new Chart(document.getElementById('timelineChart'), {
+                type: 'line',
+                data: {
+                    datasets: [{
+                        label: 'Trade Amount',
+                        data: timelineData,
+                        borderColor: '#e74c3c',
+                        backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                unit: 'minute'
+                            }
+                        },
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderTradesTable(trades) {
+            const tbody = document.getElementById('tradesTableBody');
+            tbody.innerHTML = trades.map(trade => `
+                <tr>
+                    <td>${trade.id}</td>
+                    <td>${new Date(trade.created_at).toLocaleString()}</td>
+                    <td><span class="token-badge">${trade.swap_from_token}</span></td>
+                    <td><span class="token-badge">${trade.swap_to_token}</span></td>
+                    <td class="amount">${trade.amount_from}</td>
+                    <td class="amount">${trade.amount_to}</td>
+                    <td>${trade.wallet_address.slice(0, 10)}...</td>
+                    <td class="tx-hash" onclick="openTxHash('${trade.tx_hash}')">${trade.tx_hash.slice(0, 10)}...</td>
+                </tr>
+            `).join('');
+        }
+
+        function openTxHash(hash) {
+            const baseUrl = dashboardData.network === "BSC Testnet" 
+                ? "https://testnet.bscscan.com/tx/" 
+                : "https://bscscan.com/tx/";
+            window.open(baseUrl + hash, '_blank');
+        }
+
+        async function executeSwap() {
+            const symbolIn = document.getElementById('symbolIn').value;
+            const symbolOut = document.getElementById('symbolOut').value;
+            const amountIn = document.getElementById('amountIn').value;
+            const resultDiv = document.getElementById('swapResult');
+            const swapBtn = document.querySelector('.swap-btn');
+
+            if (!symbolIn || !symbolOut || !amountIn) {
+                resultDiv.innerHTML = '<div class="error">Please fill all fields</div>';
+                return;
+            }
+
+            if (symbolIn === symbolOut) {
+                resultDiv.innerHTML = '<div class="error">Input and output tokens must be different</div>';
+                return;
+            }
+
+            swapBtn.disabled = true;
+            swapBtn.textContent = '⏳ Swapping...';
+            resultDiv.innerHTML = '<div style="color: #f39c12; padding: 10px;">🔄 Processing swap...</div>';
+
+            try {
+                const response = await fetch('/swap', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ symbolIn, symbolOut, amountIn })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div style="color: #27ae60; padding: 10px; background: #d4edda; border-radius: 5px;">
+                            ✅ Swap successful! TX: ${result.txHash || 'Transaction completed'}
+                        </div>
+                    `;
+                    // Refresh dashboard after successful swap
+                    setTimeout(loadDashboard, 2000);
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">❌ Swap failed: ${result.error}</div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">❌ Network error: ${error.message}</div>
+                `;
+            } finally {
+                swapBtn.disabled = false;
+                swapBtn.textContent = '🔄 Swap';
+            }
+        }
+
+        // Load dashboard on page load
+        window.addEventListener('load', loadDashboard);
+    </script>
+</body>
+</html>
