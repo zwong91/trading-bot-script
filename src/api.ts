@@ -1,23 +1,22 @@
-const express = require("express");
-const cors = require("cors");
-const bodyParser = require("body-parser");
-const dotenv = require("dotenv");
-const { connectDB, closeDB, fetchDB } = require("../dist/database");
-const { formatUnits } = require("viem");
-const { privateKeyToAddress } = require("viem/accounts");
-const { readFileSync } = require("fs");
-const { getBalance, decryptKey } = require("../dist/utils");
-const path = require("path");
+import express, { Request, Response } from "express";
+import cors from "cors";
+import bodyParser from "body-parser";
+import dotenv from "dotenv";
+import { connectDB, closeDB, fetchDB } from "./database";
+import { formatUnits } from "viem";
+import { privateKeyToAddress } from "viem/accounts";
+import { readFileSync } from "fs";
+import { getBalance, decryptKey } from "./utils";
+import path from "path";
 
 // Import your local functions
-// Note: We'll use require for now to avoid ES module issues
-const { swapAnyTokens } = require("../dist/swapAnyTokens.js");
-const { addLiquidityUSDCUSDT, addLiquidityBNBUSDC } = require("../dist/addLiquidity.js");
-const { removeLiquidityUSDCUSDT, removeLiquidityBNBUSDC, getLiquidityInfo, removeLiquidityTraderJoeUSDCUSDT } = require("../dist/removeLiquidity.js");
+import { swapAnyTokens } from "./swapAnyTokens";
+import { addLiquidityUSDCUSDT, addLiquidityBNBUSDC } from "./addLiquidity";
+import { removeLiquidityUSDCUSDT, removeLiquidityBNBUSDC, getLiquidityInfo, removeLiquidityTraderJoeUSDCUSDT } from "./removeLiquidity";
 
 dotenv.config();
 
-const PRIVATE_KEY = process.env.PRIVATE_KEY;
+const PRIVATE_KEY = process.env.PRIVATE_KEY!;
 const MODE = process.env.MODE;
 
 // BSC 代币地址
@@ -37,53 +36,107 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-app.get("/analysis", async (req, res) => {
+// Types
+interface Trade {
+  id: number;
+  tx_hash: string;
+  wallet_address: string;
+  swap_from_token: string;
+  swap_to_token: string;
+  amount_from: number;
+  amount_to: number;
+  time: number;
+  created_at: string;
+}
+
+interface TradingStats {
+  totalTrades: number;
+  totalVolume: string;
+  uniqueWallets: number;
+  averageTradeSize: string;
+  tokenBreakdown: Record<string, { volume: number; count: number }>;
+  firstTrade?: string;
+  lastTrade?: string;
+}
+
+interface WalletBalance {
+  bnb: string;
+  usdc: string;
+  usdt: string;
+  wbnb: string;
+  address: string;
+  network: string;
+  error?: string;
+}
+
+interface SwapRequest {
+  symbolIn: string;
+  symbolOut: string;
+  amountIn: string;
+}
+
+interface LiquidityRequest {
+  type: string;
+  amount1: string;
+  amount2: string;
+  binStep?: string;
+  slippage?: number;
+}
+
+interface RemoveLiquidityRequest {
+  type: string;
+  percentage?: string;
+  slippage?: number;
+  protocol?: string;
+}
+
+app.get("/analysis", async (req: Request, res: Response) => {
   try {
-    let results = [];
+    let results: Trade[] = [];
     try {
       await connectDB();
-      results = await fetchDB();
-    } catch (dbError) {
+      results = await fetchDB() as Trade[];
+    } catch (dbError: any) {
       console.warn("Database connection failed:", dbError.message);
     } finally {
       try {
         await closeDB();
-      } catch (closeError) {
+      } catch (closeError: any) {
         console.warn("Database close error (non-critical):", closeError.message);
       }
     }
     res.json(results);
-  } catch (error) {
+  } catch (error: any) {
     console.error("API endpoint error:", error);
     res.json([]); // Return empty array instead of error
   }
 });
 
 // Trading dashboard endpoint
-app.get("/dashboard", async (req, res) => {
+app.get("/dashboard", async (req: Request, res: Response) => {
   try {
-    let trades = [];
-    let stats = {
+    let trades: Trade[] = [];
+    let stats: TradingStats = {
       totalTrades: 0,
       totalVolume: "0.00",
       uniqueWallets: 0,
       averageTradeSize: "0.00",
       tokenBreakdown: {},
-      firstTrade: null,
-      lastTrade: null
+      firstTrade: undefined,
+      lastTrade: undefined
     };
 
     try {
       await connectDB();
-      trades = await fetchDB();
+      trades = await fetchDB() as Trade[];
       stats = calculateTradingStats(trades);
-    } catch (dbError) {
+    } catch (dbError: any) {
       console.warn("Database connection failed, using default values:", dbError.message);
       // Continue with default empty values instead of throwing error
     } finally {
       try {
         await closeDB();
-      } catch (closeError) {
+      } catch (closeError: any) {
         console.warn("Database close error (non-critical):", closeError.message);
       }
     }
@@ -94,7 +147,7 @@ app.get("/dashboard", async (req, res) => {
       network: MODE === "dev" ? "BSC Testnet" : "BSC Mainnet",
       status: trades.length > 0 ? "connected" : "no_data"
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Dashboard endpoint error:", error);
     // Return default data instead of error
     res.json({
@@ -105,8 +158,8 @@ app.get("/dashboard", async (req, res) => {
         uniqueWallets: 0,
         averageTradeSize: "0.00",
         tokenBreakdown: {},
-        firstTrade: null,
-        lastTrade: null
+        firstTrade: undefined,
+        lastTrade: undefined
       },
       network: MODE === "dev" ? "BSC Testnet" : "BSC Mainnet",
       status: "error",
@@ -116,7 +169,7 @@ app.get("/dashboard", async (req, res) => {
 });
 
 // Swap endpoint
-app.post("/swap", async (req, res) => {
+app.post("/swap", async (req: Request<{}, {}, SwapRequest>, res: Response) => {
   try {
     const { symbolIn, symbolOut, amountIn } = req.body;
     console.log("Received swap request:", { symbolIn, symbolOut, amountIn });
@@ -132,16 +185,16 @@ app.post("/swap", async (req, res) => {
     const txHash = await swapAnyTokens(symbolIn, symbolOut, amountIn);
     console.log("Swap successful, txHash:", txHash);
     return res.json({ message: "Swap completed", txHash });
-  } catch (err) {
+  } catch (err: any) {
     console.error("Swap error:", err);
     return res.status(500).json({ error: err.message });
   }
 });
 
 // Add Liquidity endpoints
-app.post("/add-liquidity", async (req, res) => {
+app.post("/add-liquidity", async (req: Request<{}, {}, LiquidityRequest>, res: Response) => {
   try {
-    const { type, amount1, amount2, binStep = "1", slippage = 0.5 } = req.body;// Default binStep to "1"
+    const { type, amount1, amount2, binStep = "1", slippage = 0.5 } = req.body;
     console.log("Received add liquidity request:", { type, amount1, amount2, binStep, slippage });
 
     if (!type || !amount1 || !amount2) {
@@ -151,27 +204,27 @@ app.post("/add-liquidity", async (req, res) => {
         .json({ error: "Please provide type, amount1, and amount2" });
     }
 
-    let txHash;
+    let txHash: string;
     if (type === "usdc-usdt") {
       console.log("Adding USDC-USDT liquidity:", { amount1, amount2, slippage });
-      txHash = await addLiquidityUSDCUSDT(amount1, amount2, slippage);
+      txHash = await addLiquidityUSDCUSDT(amount1, amount2, slippage.toString());
     } else if (type === "bnb-usdc") {
       console.log("Adding BNB-USDC liquidity:", { amount1, amount2, slippage });
-      txHash = await addLiquidityBNBUSDC(amount1, amount2, slippage);
+      txHash = await addLiquidityBNBUSDC(amount1, amount2, slippage.toString());
     } else {
       return res.status(400).json({ error: "Invalid liquidity type. Use 'usdc-usdt' or 'bnb-usdc'" });
     }
 
     console.log("Add liquidity successful, txHash:", txHash);
     return res.json({ message: "Liquidity added successfully", txHash, type });
-  } catch (err) {
+  } catch (err: any) {
     console.error("Add liquidity error:", err);
     return res.status(500).json({ error: err.message });
   }
 });
 
 // Remove liquidity endpoint
-app.post("/remove-liquidity", async (req, res) => {
+app.post("/remove-liquidity", async (req: Request<{}, {}, RemoveLiquidityRequest>, res: Response) => {
   try {
     const { type, percentage = "100", slippage = 0.5, protocol = "pancakeswap" } = req.body;
     console.log("Received remove liquidity request:", { type, percentage, slippage, protocol });
@@ -189,7 +242,7 @@ app.post("/remove-liquidity", async (req, res) => {
       return res.status(400).json({ error: "Percentage must be between 0 and 100" });
     }
 
-    let txHash;
+    let txHash: string;
     if (protocol === "traderjoe") {
       // TraderJoe V2.2 liquidity removal
       if (type === "usdc-usdt") {
@@ -219,14 +272,14 @@ app.post("/remove-liquidity", async (req, res) => {
       percentage: `${percentage}%`,
       protocol: protocol || "pancakeswap"
     });
-  } catch (err) {
+  } catch (err: any) {
     console.error("Remove liquidity error:", err);
     return res.status(500).json({ error: err.message });
   }
 });
 
 // Get liquidity info endpoint
-app.get("/liquidity-info/:type", async (req, res) => {
+app.get("/liquidity-info/:type", async (req: Request, res: Response) => {
   try {
     const { type } = req.params;
     console.log("Received liquidity info request for type:", type);
@@ -243,23 +296,23 @@ app.get("/liquidity-info/:type", async (req, res) => {
       liquidityInfo,
       timestamp: new Date().toISOString()
     });
-  } catch (err) {
+  } catch (err: any) {
     console.error("Get liquidity info error:", err);
     return res.status(500).json({ error: err.message });
   }
 });
 
 // Trading visualization data endpoint
-app.get("/trading-chart", async (req, res) => {
+app.get("/trading-chart", async (req: Request, res: Response) => {
   try {
     await connectDB();
-    const trades = await fetchDB();
+    const trades = await fetchDB() as Trade[];
     
     // Prepare data for charts
     const chartData = prepareChartData(trades);
     
     res.json(chartData);
-  } catch (error) {
+  } catch (error: any) {
     res.status(500).json({ error: error.message });
   } finally {
     await closeDB();
@@ -267,7 +320,7 @@ app.get("/trading-chart", async (req, res) => {
 });
 
 // Portfolio endpoint for DEX frontend
-app.get("/portfolio", async (req, res) => {
+app.get("/portfolio", async (req: Request, res: Response) => {
   try {
     const { walletAddress } = req.query;
     
@@ -275,11 +328,11 @@ app.get("/portfolio", async (req, res) => {
     let portfolioData = {
       portfolio: {
         totalBalances: { BNB: "0.0000", USDC: "0.00", USDT: "0.00" },
-        wallets: [],
+        wallets: [] as any[],
         walletCount: 0
       },
       trading: {
-        recentTrades: [],
+        recentTrades: [] as Trade[],
         stats: {
           totalTrades: 0,
           totalVolume: "0.00",
@@ -292,15 +345,15 @@ app.get("/portfolio", async (req, res) => {
     };
 
     // If specific wallet requested, return that wallet's data
-    if (walletAddress) {
+    if (walletAddress && typeof walletAddress === 'string') {
       try {
-        const balance = await getBalance(walletAddress);
+        const balance = await getBalance(walletAddress as `0x${string}`);
         return res.json({
           walletAddress,
           balance,
           status: 'success'
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error(`Error fetching balance for ${walletAddress}:`, error);
         return res.json({
           walletAddress,
@@ -314,19 +367,19 @@ app.get("/portfolio", async (req, res) => {
     // Get wallet data using the same logic as the working /wallets endpoint
     try {
       const secretFilePath = path.join(__dirname, "../secret/trading_keys.txt");
-      let PRIVATE_KEYS = [];
+      let PRIVATE_KEYS: string[] = [];
       
       try {
         const data = readFileSync(secretFilePath, "utf8");
         const arrayString = decryptKey(data);
         PRIVATE_KEYS = JSON.parse(arrayString);
-      } catch (error) {
+      } catch (error: any) {
         console.warn("Error reading trading keys file:", error.message);
       }
       
       // Get accounts
-      let main_account = privateKeyToAddress(`0x${PRIVATE_KEY}`);
-      let trading_accounts = PRIVATE_KEYS.map((key) => privateKeyToAddress(key));
+      let main_account = privateKeyToAddress(`0x${PRIVATE_KEY}` as `0x${string}`);
+      let trading_accounts = PRIVATE_KEYS.map((key) => privateKeyToAddress(key as `0x${string}`));
       const allAccounts = [main_account, ...trading_accounts];
 
       // Get balances
@@ -347,9 +400,9 @@ app.get("/portfolio", async (req, res) => {
 
       // Calculate totals
       const totals = walletsWithType.reduce((acc, wallet) => {
-        acc.totalBnb += parseFloat(wallet.balance.BNB || 0);
-        acc.totalUsdc += parseFloat(wallet.balance.USDC || 0);
-        acc.totalUsdt += parseFloat(wallet.balance.USDT || 0);
+        acc.totalBnb += parseFloat(wallet.balance.BNB || "0");
+        acc.totalUsdc += parseFloat(wallet.balance.USDC || "0");
+        acc.totalUsdt += parseFloat(wallet.balance.USDT || "0");
         return acc;
       }, { totalBnb: 0, totalUsdc: 0, totalUsdt: 0 });
 
@@ -363,33 +416,33 @@ app.get("/portfolio", async (req, res) => {
         walletCount: walletsWithType.length
       };
 
-    } catch (walletError) {
+    } catch (walletError: any) {
       console.warn("Failed to process wallets for portfolio:", walletError.message);
     }
 
     // Get trading data
     try {
       await connectDB();
-      const trades = await fetchDB();
+      const trades = await fetchDB() as Trade[];
       const stats = calculateTradingStats(trades);
       
       portfolioData.trading = {
         recentTrades: trades.slice(-10),
         stats
       };
-    } catch (dbError) {
+    } catch (dbError: any) {
       console.warn("Database connection failed for portfolio:", dbError.message);
     } finally {
       try {
         await closeDB();
-      } catch (closeError) {
+      } catch (closeError: any) {
         console.warn("Database close error (non-critical):", closeError.message);
       }
     }
 
     res.json(portfolioData);
     
-  } catch (error) {
+  } catch (error: any) {
     console.error("Portfolio endpoint error:", error);
     res.status(500).json({
       error: "Internal server error",
@@ -399,15 +452,14 @@ app.get("/portfolio", async (req, res) => {
   }
 });
 
-function calculateTradingStats(trades) {
+function calculateTradingStats(trades: Trade[]): TradingStats {
   if (!trades || trades.length === 0) {
     return {
       totalTrades: 0,
-      totalVolume: 0,
+      totalVolume: "0",
       uniqueWallets: 0,
-      averageTradeSize: 0,
-      tokenBreakdown: {},
-      profitLoss: 0
+      averageTradeSize: "0",
+      tokenBreakdown: {}
     };
   }
 
@@ -416,7 +468,7 @@ function calculateTradingStats(trades) {
   
   // Calculate volumes
   let totalVolumeUSD = 0;
-  const tokenBreakdown = {};
+  const tokenBreakdown: Record<string, { volume: number; count: number }> = {};
   
   trades.forEach(trade => {
     // Estimate USD value (simplified - using rough BNB price)
@@ -453,7 +505,7 @@ function calculateTradingStats(trades) {
   };
 }
 
-function prepareChartData(trades) {
+function prepareChartData(trades: Trade[]) {
   if (!trades || trades.length === 0) {
     return { timeSeriesData: [], tokenDistribution: [], volumeData: [] };
   }
@@ -474,7 +526,7 @@ function prepareChartData(trades) {
   }));
 
   // Token distribution
-  const tokenCounts = {};
+  const tokenCounts: Record<string, number> = {};
   trades.forEach(trade => {
     tokenCounts[trade.swap_from_token] = (tokenCounts[trade.swap_from_token] || 0) + 1;
     tokenCounts[trade.swap_to_token] = (tokenCounts[trade.swap_to_token] || 0) + 1;
@@ -487,7 +539,7 @@ function prepareChartData(trades) {
   }));
 
   // Volume data by hour
-  const hourlyVolume = {};
+  const hourlyVolume: Record<string, { hour: string; volume: number; trades: number }> = {};
   trades.forEach(trade => {
     const hour = new Date(trade.created_at).getHours();
     const key = `${hour}:00`;
@@ -508,19 +560,19 @@ function prepareChartData(trades) {
   };
 }
 
-async function getWalletBalance(address) {
+async function getWalletBalance(address: `0x${string}`): Promise<WalletBalance> {
   try {
     // 获取BNB余额 (原生代币)
     const bnbBalance = await getBalance(address, undefined);
     
     // 获取USDC余额
-    const usdcBalance = await getBalance(address, USDC_ADDRESS);
+    const usdcBalance = await getBalance(address, USDC_ADDRESS as `0x${string}`);
     
     // 获取USDT余额
-    const usdtBalance = await getBalance(address, USDT_ADDRESS);
+    const usdtBalance = await getBalance(address, USDT_ADDRESS as `0x${string}`);
     
     // 获取WBNB余额
-    const wbnbBalance = await getBalance(address, WBNB_ADDRESS);
+    const wbnbBalance = await getBalance(address, WBNB_ADDRESS as `0x${string}`);
     
     // 格式化余额 (所有代币都是18位小数)
     let bnb = formatUnits(bnbBalance, 18);
@@ -529,20 +581,20 @@ async function getWalletBalance(address) {
     let wbnb = formatUnits(wbnbBalance, 18);
     
     // 转换为数字并保留合适的小数位数
-    bnb = Number(bnb).toFixed(4);   // BNB显示4位小数
-    usdc = Number(usdc).toFixed(2); // USDC显示2位小数
-    usdt = Number(usdt).toFixed(2); // USDT显示2位小数
-    wbnb = Number(wbnb).toFixed(4); // WBNB显示4位小数
+    const bnbFormatted = Number(bnb).toFixed(4);   // BNB显示4位小数
+    const usdcFormatted = Number(usdc).toFixed(2); // USDC显示2位小数
+    const usdtFormatted = Number(usdt).toFixed(2); // USDT显示2位小数
+    const wbnbFormatted = Number(wbnb).toFixed(4); // WBNB显示4位小数
     
     return { 
-      bnb, 
-      usdc,
-      usdt, 
-      wbnb, 
+      bnb: bnbFormatted, 
+      usdc: usdcFormatted,
+      usdt: usdtFormatted, 
+      wbnb: wbnbFormatted, 
       address,
       network: MODE === "dev" ? "BSC Testnet" : "BSC Mainnet"
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error(`Error getting balance for ${address}:`, error);
     return { 
       bnb: "0.0000", 
@@ -550,31 +602,32 @@ async function getWalletBalance(address) {
       usdt: "0.00", 
       wbnb: "0.0000", 
       address,
+      network: MODE === "dev" ? "BSC Testnet" : "BSC Mainnet",
       error: error.message 
     };
   }
 }
 
-app.get("/wallets", async (req, res) => {
+app.get("/wallets", async (req: Request, res: Response) => {
   try {
     const rootDir = path.resolve(__dirname, "../");
     const secretFilePath = path.join(rootDir, "secret", "trading_keys.txt");
-    let PRIVATE_KEYS = [];
+    let PRIVATE_KEYS: string[] = [];
     
     try {
       const data = readFileSync(secretFilePath, "utf8");
       const arrayString = decryptKey(data);
       PRIVATE_KEYS = JSON.parse(arrayString);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error reading trading keys file:", error);
       // 如果读取失败，返回只有主账户的信息
     }
     
     // 主账户
-    let main_account = privateKeyToAddress(`0x${PRIVATE_KEY}`);
+    let main_account = privateKeyToAddress(`0x${PRIVATE_KEY}` as `0x${string}`);
     
     // 交易账户
-    let trading_accounts = PRIVATE_KEYS.map((key) => privateKeyToAddress(key));
+    let trading_accounts = PRIVATE_KEYS.map((key) => privateKeyToAddress(key as `0x${string}`));
     
     // 所有账户
     const allAccounts = [main_account, ...trading_accounts];
@@ -616,25 +669,25 @@ app.get("/wallets", async (req, res) => {
       }
     });
     
-  } catch (error) {
+  } catch (error: any) {
     console.error("API Error:", error);
     res.status(500).json({ error: error.message });
   }
 });
 
 // 获取单个钱包详细信息
-app.get("/wallet/:address", async (req, res) => {
+app.get("/wallet/:address", async (req: Request, res: Response) => {
   try {
     const { address } = req.params;
-    const balance = await getWalletBalance(address);
+    const balance = await getWalletBalance(address as `0x${string}`);
     res.json(balance);
-  } catch (error) {
+  } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
 });
 
 // 健康检查端点
-app.get("/health", (req, res) => {
+app.get("/health", (req: Request, res: Response) => {
   res.json({ 
     status: "ok", 
     network: MODE === "dev" ? "BSC Testnet" : "BSC Mainnet",
@@ -647,16 +700,23 @@ app.get("/health", (req, res) => {
   });
 });
 
-// Local instance
-app.listen(5000, () => {
-  console.log(`🚀 Server listening on port 5000`);
-  console.log(`📊 Network: ${MODE === "dev" ? "BSC Testnet" : "BSC Mainnet"}`);
-  console.log(`💰 Tokens:`);
-  console.log(`   USDC: ${USDC_ADDRESS}`);
-  console.log(`   USDT: ${USDT_ADDRESS}`);
-  console.log(`   WBNB: ${WBNB_ADDRESS}`);
-  console.log(`🌐 Dashboard: http://localhost:5000/`);
-});
+// Server startup function
+export function startServer(port: number = 5000) {
+  app.listen(port, () => {
+    console.log(`🚀 Server listening on port ${port}`);
+    console.log(`📊 Network: ${MODE === "dev" ? "BSC Testnet" : "BSC Mainnet"}`);
+    console.log(`💰 Tokens:`);
+    console.log(`   USDC: ${USDC_ADDRESS}`);
+    console.log(`   USDT: ${USDT_ADDRESS}`);
+    console.log(`   WBNB: ${WBNB_ADDRESS}`);
+    console.log(`🌐 Dashboard: http://localhost:${port}/`);
+  });
+}
 
-// Vercel instance
-module.exports = app;
+// For direct execution
+if (require.main === module) {
+  startServer();
+}
+
+// Export for Vercel
+export default app;
