@@ -266,6 +266,139 @@ app.get("/trading-chart", async (req, res) => {
   }
 });
 
+// Portfolio endpoint for DEX frontend
+app.get("/portfolio", async (req, res) => {
+  try {
+    const { walletAddress } = req.query;
+    
+    // Initialize response structure
+    let portfolioData = {
+      portfolio: {
+        totalBalances: { BNB: "0.0000", USDC: "0.00", USDT: "0.00" },
+        wallets: [],
+        walletCount: 0
+      },
+      trading: {
+        recentTrades: [],
+        stats: {
+          totalTrades: 0,
+          totalVolume: "0.00",
+          uniqueWallets: 0,
+          averageTradeSize: "0.00"
+        }
+      },
+      network: MODE === "dev" ? "BSC Testnet" : "BSC Mainnet",
+      status: 'success'
+    };
+
+    // If specific wallet requested, return that wallet's data
+    if (walletAddress) {
+      try {
+        const balance = await getBalance(walletAddress);
+        return res.json({
+          walletAddress,
+          balance,
+          status: 'success'
+        });
+      } catch (error) {
+        console.error(`Error fetching balance for ${walletAddress}:`, error);
+        return res.json({
+          walletAddress,
+          balance: { BNB: '0.0000', USDC: '0.0000', USDT: '0.0000' },
+          status: 'error',
+          error: error.message
+        });
+      }
+    }
+
+    // Get wallet data using the same logic as the working /wallets endpoint
+    try {
+      const secretFilePath = path.join(__dirname, "../secret/trading_keys.txt");
+      let PRIVATE_KEYS = [];
+      
+      try {
+        const data = readFileSync(secretFilePath, "utf8");
+        const arrayString = decryptKey(data);
+        PRIVATE_KEYS = JSON.parse(arrayString);
+      } catch (error) {
+        console.warn("Error reading trading keys file:", error.message);
+      }
+      
+      // Get accounts
+      let main_account = privateKeyToAddress(`0x${PRIVATE_KEY}`);
+      let trading_accounts = PRIVATE_KEYS.map((key) => privateKeyToAddress(key));
+      const allAccounts = [main_account, ...trading_accounts];
+
+      // Get balances
+      const balances = await Promise.all(allAccounts.map(getWalletBalance));
+      
+      // Format wallet data for portfolio
+      const walletsWithType = balances.map((balance, index) => ({
+        address: balance.address,
+        balance: {
+          BNB: balance.bnb || "0.0000",
+          USDC: balance.usdc || "0.00",
+          USDT: balance.usdt || "0.00"
+        },
+        type: index === 0 ? "main" : "trading",
+        id: index === 0 ? "main" : `trading_${index}`,
+        alias: index === 0 ? "main" : `trading_${index}`
+      }));
+
+      // Calculate totals
+      const totals = walletsWithType.reduce((acc, wallet) => {
+        acc.totalBnb += parseFloat(wallet.balance.BNB || 0);
+        acc.totalUsdc += parseFloat(wallet.balance.USDC || 0);
+        acc.totalUsdt += parseFloat(wallet.balance.USDT || 0);
+        return acc;
+      }, { totalBnb: 0, totalUsdc: 0, totalUsdt: 0 });
+
+      portfolioData.portfolio = {
+        totalBalances: {
+          BNB: totals.totalBnb.toFixed(4),
+          USDC: totals.totalUsdc.toFixed(2),
+          USDT: totals.totalUsdt.toFixed(2)
+        },
+        wallets: walletsWithType,
+        walletCount: walletsWithType.length
+      };
+
+    } catch (walletError) {
+      console.warn("Failed to process wallets for portfolio:", walletError.message);
+    }
+
+    // Get trading data
+    try {
+      await connectDB();
+      const trades = await fetchDB();
+      const stats = calculateTradingStats(trades);
+      
+      portfolioData.trading = {
+        recentTrades: trades.slice(-10),
+        stats
+      };
+    } catch (dbError) {
+      console.warn("Database connection failed for portfolio:", dbError.message);
+    } finally {
+      try {
+        await closeDB();
+      } catch (closeError) {
+        console.warn("Database close error (non-critical):", closeError.message);
+      }
+    }
+
+    res.json(portfolioData);
+    
+  } catch (error) {
+    console.error("Portfolio endpoint error:", error);
+    res.status(500).json({
+      error: "Internal server error",
+      message: error.message,
+      status: 'error'
+    });
+  }
+});
+
 function calculateTradingStats(trades) {
   if (!trades || trades.length === 0) {
     return {
@@ -524,19 +657,6 @@ app.listen(5000, () => {
   console.log(`   WBNB: ${WBNB_ADDRESS}`);
   console.log(`🌐 Dashboard: http://localhost:5000/`);
 });
-
-// Serve dashboard HTML
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "../public/dashboard.html"));
-});
-
-// Serve trading dashboard
-app.get("/trading", (req, res) => {
-  res.sendFile(path.join(__dirname, "../public/trading.html"));
-});
-
-// Serve static files
-app.use(express.static(path.join(__dirname, "../public")));
 
 // Vercel instance
 module.exports = app;
