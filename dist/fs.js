@@ -64,10 +64,28 @@ function getLogStyle(level) {
  * 确保日志目录存在
  */
 function ensureLogDirectory(filePath) {
-    const directory = path_1.default.dirname(filePath);
-    if (!fs_1.default.existsSync(directory)) {
-        fs_1.default.mkdirSync(directory, { recursive: true });
+    try {
+        const dir = path_1.default.dirname(filePath);
+        if (!fs_1.default.existsSync(dir)) {
+            fs_1.default.mkdirSync(dir, { recursive: true });
+        }
     }
+    catch (error) {
+        // 如果目录创建失败，使用默认logs目录
+        const defaultDir = './logs';
+        if (!fs_1.default.existsSync(defaultDir)) {
+            fs_1.default.mkdirSync(defaultDir, { recursive: true });
+        }
+    }
+}
+/**
+ * 截断过长的错误消息
+ */
+function truncateMessage(message, maxLength = 1000) {
+    if (message.length <= maxLength) {
+        return message;
+    }
+    return message.substring(0, maxLength) + '...[截断]';
 }
 /**
  * 友善的日志记录函数（向后兼容版本）
@@ -92,8 +110,9 @@ function log(data, filePath = "./logs/app.log", isErrorOrLevel = LogLevel.INFO, 
         }
         // 确保日志目录存在
         ensureLogDirectory(filePath);
-        // 格式化数据
-        const formattedData = typeof data === 'object' ? JSON.stringify(data, null, 2) : String(data);
+        // 格式化数据，并截断过长的消息
+        let formattedData = typeof data === 'object' ? JSON.stringify(data, null, 2) : String(data);
+        formattedData = truncateMessage(formattedData, 800); // 限制消息长度
         // 生成日志内容
         const timestamp = now();
         const logLine = `[${timestamp}] [${level}] ${formattedData}\n`;
@@ -107,8 +126,12 @@ function log(data, filePath = "./logs/app.log", isErrorOrLevel = LogLevel.INFO, 
         if (showConsole) {
             const { color, icon } = getLogStyle(level);
             const isTest = process.env.MODE === "dev";
+            // 限制控制台输出长度以避免文件系统错误
+            const displayData = formattedData.length > 500
+                ? formattedData.substring(0, 500) + "...[截断]"
+                : formattedData;
             if (isTest || level !== LogLevel.DEBUG) {
-                console.log(`${color}${icon} [${timestamp}] ${formattedData}${colors.reset}`);
+                console.log(`${color}${icon} [${timestamp}] ${displayData}${colors.reset}`);
             }
         }
         // 如果是错误且需要抛出异常

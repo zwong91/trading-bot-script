@@ -24,14 +24,13 @@
     "@lb-xyz/sdk": "5.0.12",
     "@lb-xyz/sdk-core": "2.0.11",
     "@lb-xyz/sdk-v2": "3.0.26",
+    "viem": "^2.31.0",
     "cors": "^2.8.5",
     "crypto-js": "^4.2.0",
     "dotenv": "^16.4.5",
-    "ethers": "^6.14.3",
     "express": "^5.1.0",
     "mysql": "^2.18.1",
-    "prettier": "^3.2.5",
-    "viem": "^2.31.0"
+    "prettier": "^3.2.5"
   },
   "devDependencies": {
     "@types/crypto-js": "^4.2.2",

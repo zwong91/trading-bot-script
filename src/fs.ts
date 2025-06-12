@@ -65,10 +65,28 @@ function getLogStyle(level: LogLevel): { color: string; icon: string } {
  * 确保日志目录存在
  */
 function ensureLogDirectory(filePath: string): void {
-  const directory = path.dirname(filePath);
-  if (!fs.existsSync(directory)) {
-    fs.mkdirSync(directory, { recursive: true });
+  try {
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+  } catch (error) {
+    // 如果目录创建失败，使用默认logs目录
+    const defaultDir = './logs';
+    if (!fs.existsSync(defaultDir)) {
+      fs.mkdirSync(defaultDir, { recursive: true });
+    }
   }
+}
+
+/**
+ * 截断过长的错误消息
+ */
+function truncateMessage(message: string, maxLength: number = 1000): string {
+  if (message.length <= maxLength) {
+    return message;
+  }
+  return message.substring(0, maxLength) + '...[截断]';
 }
 
 /**
@@ -101,8 +119,9 @@ function log(
     // 确保日志目录存在
     ensureLogDirectory(filePath);
     
-    // 格式化数据
-    const formattedData = typeof data === 'object' ? JSON.stringify(data, null, 2) : String(data);
+    // 格式化数据，并截断过长的消息
+    let formattedData = typeof data === 'object' ? JSON.stringify(data, null, 2) : String(data);
+    formattedData = truncateMessage(formattedData, 800); // 限制消息长度
     
     // 生成日志内容
     const timestamp = now();
@@ -120,8 +139,13 @@ function log(
       const { color, icon } = getLogStyle(level);
       const isTest = process.env.MODE === "dev";
       
+      // 限制控制台输出长度以避免文件系统错误
+      const displayData = formattedData.length > 500 
+        ? formattedData.substring(0, 500) + "...[截断]"
+        : formattedData;
+      
       if (isTest || level !== LogLevel.DEBUG) {
-        console.log(`${color}${icon} [${timestamp}] ${formattedData}${colors.reset}`);
+        console.log(`${color}${icon} [${timestamp}] ${displayData}${colors.reset}`);
       }
     }
 
