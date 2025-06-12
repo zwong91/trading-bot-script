@@ -110,9 +110,10 @@ function swapAnyTokens(symbolIn, symbolOut, amountIn) {
             const chain = MODE === "dev" ? chains_1.bscTestnet : chains_1.bsc;
             const CHAIN_ID = MODE === "dev" ? sdk_core_1.ChainId.BNB_TESTNET : sdk_core_1.ChainId.BNB_CHAIN;
             // Use the router from configuration
-            const routerAddress = (const_1.routerConfig === null || const_1.routerConfig === void 0 ? void 0 : const_1.routerConfig.address) || (MODE === "dev"
-                ? "0xD99D1c33F9fC3444f8101754aBC46c52416550D1" // PancakeSwap BSC testnet
-                : "0x10ED43C718714eb63d5aA57B78B54704E256024E"); // PancakeSwap BSC mainnet
+            const routerAddress = sdk_v2_1.LB_ROUTER_V22_ADDRESS[CHAIN_ID] ||
+                (MODE === "dev"
+                    ? "0xe98efCE22A8Ec0dd5dDF6C1A81B6ADD740176E98" // TraderJoe BSC testnet
+                    : "0xe98efCE22A8Ec0dd5dDF6C1A81B6ADD740176E98"); // TraderJoe BSC mainnet
             const publicClient = (0, viem_1.createPublicClient)({
                 chain: chain,
                 transport: (0, viem_1.http)(),

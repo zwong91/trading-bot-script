@@ -37,7 +37,7 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-app.get("/api", async (req, res) => {
+app.get("/analysis", async (req, res) => {
   try {
     let results = [];
     try {

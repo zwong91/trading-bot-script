@@ -32,12 +32,12 @@ async function testAddLiquidity() {
         console.log("-".repeat(50));
         
         try {
-            const pancakeBNBUSDCResult = await addLiquidityBNBUSDC(
+            const traderJoeBNBUSDCResult = await addLiquidityBNBUSDC(
                  "25",     // binStep
                 "0.01",   // bnbAmount
                 "0.1",   // usdcAmount
             );
-            logger.success(`✅ TraderJoe BNB-USDC流动性添加成功: ${pancakeBNBUSDCResult}`);
+            logger.success(`✅ TraderJoe BNB-USDC流动性添加成功: ${traderJoeBNBUSDCResult}`);
         } catch (error) {
             logger.warn(`⚠️ TraderJoe BNB-USDC流动性添加测试跳过: ${error instanceof Error ? error.message : String(error)}`);
         }

@@ -138,9 +138,10 @@ export async function swapAnyTokens(symbolIn: string, symbolOut: string, amountI
         const CHAIN_ID = MODE === "dev" ? ChainId.BNB_TESTNET : ChainId.BNB_CHAIN;
 
         // Use the router from configuration
-        const routerAddress = routerConfig?.address || (MODE === "dev" 
-            ? "0xD99D1c33F9fC3444f8101754aBC46c52416550D1" // PancakeSwap BSC testnet
-            : "0x10ED43C718714eb63d5aA57B78B54704E256024E"); // PancakeSwap BSC mainnet
+        const routerAddress = LB_ROUTER_V22_ADDRESS[CHAIN_ID as keyof typeof LB_ROUTER_V22_ADDRESS] || 
+            (MODE === "dev" 
+                ? "0xe98efCE22A8Ec0dd5dDF6C1A81B6ADD740176E98" // TraderJoe BSC testnet
+                : "0xe98efCE22A8Ec0dd5dDF6C1A81B6ADD740176E98"); // TraderJoe BSC mainnet
 
         const publicClient = createPublicClient({
             chain: chain,

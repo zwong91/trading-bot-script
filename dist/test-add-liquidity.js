@@ -39,10 +39,10 @@ function testAddLiquidity() {
             console.log("\n2️⃣ 测试TraderJoe V2.2 BNB-USDC流动性添加");
             console.log("-".repeat(50));
             try {
-                const pancakeBNBUSDCResult = yield (0, addLiquidity_1.addLiquidityBNBUSDC)("25", // binStep
+                const traderJoeBNBUSDCResult = yield (0, addLiquidity_1.addLiquidityBNBUSDC)("25", // binStep
                 "0.01", // bnbAmount
-                "0.01");
-                fs_1.logger.success(`✅ TraderJoe BNB-USDC流动性添加成功: ${pancakeBNBUSDCResult}`);
+                "0.1");
+                fs_1.logger.success(`✅ TraderJoe BNB-USDC流动性添加成功: ${traderJoeBNBUSDCResult}`);
             }
             catch (error) {
                 fs_1.logger.warn(`⚠️ TraderJoe BNB-USDC流动性添加测试跳过: ${error instanceof Error ? error.message : String(error)}`);
