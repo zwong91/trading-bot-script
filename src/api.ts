@@ -452,6 +452,24 @@ app.get("/portfolio", async (req: Request, res: Response) => {
   }
 });
 
+// Utility function to estimate output amount (simplified mock implementation)
+function getEstimatedOutputAmount(fromToken: string, toToken: string, amount: string): string {
+  const inputAmount = parseFloat(amount);
+  
+  // Simple mock exchange rates (in a real app, this would fetch from DEX or price oracle)
+  const exchangeRates: { [key: string]: { [key: string]: number } } = {
+    "USDC": { "USDT": 0.999, "WBNB": 0.0017, "BNB": 0.0017 },
+    "USDT": { "USDC": 1.001, "WBNB": 0.0017, "BNB": 0.0017 },
+    "WBNB": { "USDC": 590, "USDT": 590, "BNB": 1.0 },
+    "BNB": { "USDC": 590, "USDT": 590, "WBNB": 1.0 }
+  };
+
+  const rate = exchangeRates[fromToken]?.[toToken] || 1;
+  const outputAmount = inputAmount * rate * 0.997; // 0.3% fee simulation
+  
+  return outputAmount.toFixed(6);
+}
+
 function calculateTradingStats(trades: Trade[]): TradingStats {
   if (!trades || trades.length === 0) {
     return {
@@ -682,6 +700,38 @@ app.get("/wallet/:address", async (req: Request, res: Response) => {
     const balance = await getWalletBalance(address as `0x${string}`);
     res.json(balance);
   } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get quote endpoint for price estimation
+app.get("/quote", async (req: Request, res: Response) => {
+  try {
+    const { fromToken, toToken, amount } = req.query;
+    
+    if (!fromToken || !toToken || !amount) {
+      return res.status(400).json({
+        error: "Missing required parameters: fromToken, toToken, amount"
+      });
+    }
+
+    // For now, return a simple mock quote
+    // In a real implementation, this would call a DEX aggregator or calculate the actual price
+    const mockQuote = {
+      fromToken: fromToken as string,
+      toToken: toToken as string,
+      fromAmount: amount as string,
+      toAmount: getEstimatedOutputAmount(fromToken as string, toToken as string, amount as string),
+      priceImpact: "0.1", // 0.1%
+      minimumReceived: "0", // Will be calculated based on slippage
+      route: [fromToken, toToken],
+      gasEstimate: "21000",
+      timestamp: Date.now()
+    };
+
+    res.json(mockQuote);
+  } catch (error: any) {
+    console.error("Quote endpoint error:", error);
     res.status(500).json({ error: error.message });
   }
 });
