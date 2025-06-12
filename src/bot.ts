@@ -9,7 +9,7 @@ import {
   validateWalletsFile,
 } from "./utils";
 import { fund_account } from "./wallets";
-import { Token } from "@traderjoe-xyz/sdk-core";
+import { Token } from "@lb-xyz/sdk-core";
 import log from "./fs";
 import { connectDB, closeDB } from "./database";
 import { readFileSync } from "fs";

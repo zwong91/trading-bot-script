@@ -1,4 +1,4 @@
-import { Token, TokenAmount, Percent } from "@traderjoe-xyz/sdk-core";
+import { Token, TokenAmount, Percent } from "@lb-xyz/sdk-core";
 import { parseUnits, WalletClient } from "viem";
 import { publicClient, CHAIN_ID } from "./const";
 import { getNonce, getUnixTime } from "./utils";
@@ -29,7 +29,7 @@ const ERC20_ABI = [
   }
 ] as const;
 
-// PancakeSwap V2 Router ABI (简化版本，只包含需要的方法)
+// PancakeSwap V2 Router ABI
 const PANCAKE_ROUTER_ABI = [
   {
     "inputs": [

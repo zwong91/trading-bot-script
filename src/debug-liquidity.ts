@@ -1,14 +1,14 @@
-import { TokenAmount, Token } from "@traderjoe-xyz/sdk-core";
+import { TokenAmount, Token } from "@lb-xyz/sdk-core";
 import {
   PairV2,
   RouteV2,
   TradeV2,
   jsonAbis,
-} from "@traderjoe-xyz/sdk-v2";
+} from "@lb-xyz/sdk-v2";
 import { parseUnits } from "viem";
 import { publicClient, BASES, CHAIN_ID, router, routerConfig } from "./const";
 
-const { LBRouterV21ABI, LBRouterV22ABI } = jsonAbis;
+const { LBRouterV22ABI } = jsonAbis;
 
 async function debugLiquidity() {
   console.log("🔍 调试流动性和路由状态:");

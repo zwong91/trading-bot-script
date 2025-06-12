@@ -19,7 +19,7 @@ exports.approve_router = approve_router;
 const accounts_1 = require("viem/accounts");
 const const_1 = require("./const");
 const viem_1 = require("viem");
-const sdk_1 = require("@traderjoe-xyz/sdk");
+const sdk_1 = require("@lb-xyz/sdk");
 const utils_1 = require("./utils");
 const fs_1 = __importDefault(require("./fs"));
 function gen_key() {

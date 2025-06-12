@@ -1,4 +1,4 @@
-import { Token, TokenAmount } from '@traderjoe-xyz/sdk-core';
+import { Token, TokenAmount } from '@lb-xyz/sdk-core';
 import {
     createPublicClient,
     createWalletClient,
@@ -44,7 +44,7 @@ const routerAddress = MODE === "dev"
     ? "0xD99D1c33F9fC3444f8101754aBC46c52416550D1" // BSC测试网
     : "0x10ED43C718714eb63d5aA57B78B54704E256024E"; // BSC主网
 
-// PancakeSwap V2 Router ABI (只包含添加流动性需要的方法)
+// PancakeSwap V2 Router ABI
 const PANCAKE_ROUTER_ABI = [
     {
         "inputs": [

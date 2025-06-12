@@ -42,7 +42,7 @@ const ERC20_ABI = [
         "type": "function"
     }
 ];
-// PancakeSwap V2 Router ABI (简化版本，只包含需要的方法)
+// PancakeSwap V2 Router ABI
 const PANCAKE_ROUTER_ABI = [
     {
         "inputs": [

@@ -7,15 +7,15 @@ import {
     Token,
     TokenAmount,
     Percent,
-} from "@traderjoe-xyz/sdk-core";
+} from "@lb-xyz/sdk-core";
 
 import {
     PairV2,
     RouteV2,
     TradeV2,
-    LB_ROUTER_V21_ADDRESS,
+    LB_ROUTER_V22_ADDRESS,
     jsonAbis,
-} from "@traderjoe-xyz/sdk-v2";
+} from "@lb-xyz/sdk-v2";
 
 import {
     createPublicClient,
@@ -275,7 +275,7 @@ export async function swapAnyTokens(symbolIn: string, symbolOut: string, amountI
             // Simulate the swap call (now with account specified!)
             const { request: swapRequest } = await publicClient.simulateContract({
                 address: routerAddress as `0x${string}`,
-                abi: jsonAbis.LBRouterV21ABI,
+                abi: jsonAbis.LBRouterV22ABI,
                 functionName: methodName,
                 args,
                 value: BigInt(value),

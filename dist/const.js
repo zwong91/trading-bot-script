@@ -11,8 +11,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.wallets_count = exports.assetParams = exports.chain = exports.routerConfig = exports.router = exports.account = exports.CHAIN_ID = exports.mainWalletClient = exports.publicClient = exports.BASES = void 0;
 exports.initializeRouter = initializeRouter;
-const sdk_core_1 = require("@traderjoe-xyz/sdk-core");
-const sdk_v2_1 = require("@traderjoe-xyz/sdk-v2");
+const sdk_core_1 = require("@lb-xyz/sdk-core");
+const sdk_v2_1 = require("@lb-xyz/sdk-v2");
 const viem_1 = require("viem");
 const accounts_1 = require("viem/accounts");
 const chains_1 = require("viem/chains");
@@ -70,7 +70,7 @@ function initializeRouter() {
     });
 }
 // 为了保持向后兼容，提供静态路由器作为后备
-const staticRouter = sdk_v2_1.LB_ROUTER_V21_ADDRESS[CHAIN_ID] || (0, router_selector_1.getRouterFallback)(MODE || "dev");
+const staticRouter = sdk_v2_1.LB_ROUTER_V22_ADDRESS[CHAIN_ID] || (0, router_selector_1.getRouterFallback)(MODE || "dev");
 if (!router || router === "0x0000000000000000000000000000000000000000") {
     exports.router = router = staticRouter;
 }

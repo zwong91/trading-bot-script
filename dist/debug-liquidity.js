@@ -11,11 +11,11 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.debugLiquidity = debugLiquidity;
 exports.checkPancakeSwapLiquidity = checkPancakeSwapLiquidity;
-const sdk_core_1 = require("@traderjoe-xyz/sdk-core");
-const sdk_v2_1 = require("@traderjoe-xyz/sdk-v2");
+const sdk_core_1 = require("@lb-xyz/sdk-core");
+const sdk_v2_1 = require("@lb-xyz/sdk-v2");
 const viem_1 = require("viem");
 const const_1 = require("./const");
-const { LBRouterV21ABI, LBRouterV22ABI } = sdk_v2_1.jsonAbis;
+const { LBRouterV22ABI } = sdk_v2_1.jsonAbis;
 function debugLiquidity() {
     return __awaiter(this, void 0, void 0, function* () {
         console.log("🔍 调试流动性和路由状态:");

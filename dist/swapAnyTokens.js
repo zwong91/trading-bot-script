@@ -12,8 +12,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.swapAnyTokens = swapAnyTokens;
 const dotenv_1 = require("dotenv");
 (0, dotenv_1.config)();
-const sdk_core_1 = require("@traderjoe-xyz/sdk-core");
-const sdk_v2_1 = require("@traderjoe-xyz/sdk-v2");
+const sdk_core_1 = require("@lb-xyz/sdk-core");
+const sdk_v2_1 = require("@lb-xyz/sdk-v2");
 const viem_1 = require("viem");
 const chains_1 = require("viem/chains");
 const accounts_1 = require("viem/accounts");
@@ -209,7 +209,7 @@ function swapAnyTokens(symbolIn, symbolOut, amountIn) {
                 // Simulate the swap call (now with account specified!)
                 const { request: swapRequest } = yield publicClient.simulateContract({
                     address: routerAddress,
-                    abi: sdk_v2_1.jsonAbis.LBRouterV21ABI,
+                    abi: sdk_v2_1.jsonAbis.LBRouterV22ABI,
                     functionName: methodName,
                     args,
                     value: BigInt(value),

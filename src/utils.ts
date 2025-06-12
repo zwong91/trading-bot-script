@@ -1,6 +1,6 @@
 import { Account, createWalletClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { ERC20ABI } from "@traderjoe-xyz/sdk";
+import { ERC20ABI } from "@lb-xyz/sdk";
 import { BASES, publicClient, chain, assetParams } from "./const";
 import { existsSync } from "fs";
 import CryptoJS from "crypto-js";

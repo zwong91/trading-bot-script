@@ -2,9 +2,9 @@ import {
   ChainId,
   WNATIVE,
   Token,
-} from "@traderjoe-xyz/sdk-core";
+} from "@lb-xyz/sdk-core";
 
-import { LB_ROUTER_V21_ADDRESS } from "@traderjoe-xyz/sdk-v2";
+import { LB_ROUTER_V22_ADDRESS } from "@lb-xyz/sdk-v2";
 
 import {
   createPublicClient,
@@ -67,7 +67,7 @@ async function initializeRouter() {
 }
 
 // 为了保持向后兼容，提供静态路由器作为后备
-const staticRouter = LB_ROUTER_V21_ADDRESS[CHAIN_ID as keyof typeof LB_ROUTER_V21_ADDRESS] || getRouterFallback(MODE || "dev");
+const staticRouter = LB_ROUTER_V22_ADDRESS[CHAIN_ID as keyof typeof LB_ROUTER_V22_ADDRESS] || getRouterFallback(MODE || "dev");
 if (!router || router === "0x0000000000000000000000000000000000000000") {
   router = staticRouter as `0x${string}`;
 }

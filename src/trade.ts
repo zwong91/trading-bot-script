@@ -1,11 +1,11 @@
-import { TokenAmount, Percent, Token } from "@traderjoe-xyz/sdk-core";
+import { TokenAmount, Percent, Token } from "@lb-xyz/sdk-core";
 import {
   PairV2,
   RouteV2,
   TradeV2,
   TradeOptions,
   jsonAbis,
-} from "@traderjoe-xyz/sdk-v2";
+} from "@lb-xyz/sdk-v2";
 import {
   BaseError,
   ContractFunctionExecutionError,
@@ -18,9 +18,10 @@ import { getNonce, getUnixTime } from "./utils";
 import log from "./fs";
 import { insertDB, txn_sql } from "./database";
 import { getPancakeSwapRoute, tradePancakeSwap } from "./pancakeswap-trade";
+import { swapWithPancakeInfinity } from "./pancakeswap-infinity";
 
 config();
-const { LBRouterV21ABI } = jsonAbis;
+const { LBRouterV22ABI } = jsonAbis;
 
 interface GetRouteParams {
   amount: string; // e.g. "20", "0.1"
@@ -89,9 +90,50 @@ interface Route {
 }
 async function trade(walletClient: WalletClient, route: Route) {
   try {
+    console.log("🔄 开始交易处理...");
+    console.log("路由器配置:", routerConfig);
+    
     // 检查当前使用的路由器类型
-    if (routerConfig && routerConfig.type === "pancakeswap") {
-      console.log("🥞 使用 PancakeSwap 交易逻辑");
+    if (routerConfig && routerConfig.type === "pancakeswap-infinity") {
+      console.log("🚀 使用 PancakeSwap Infinity 交易逻辑");
+      
+      try {
+        const txHash = await swapWithPancakeInfinity(
+          route.amountIn.token.address,
+          route.outputToken.address,
+          BigInt(route.amountIn.raw.toString()),
+          0.5 // 0.5% 滑点
+        );
+        
+        console.log("✅ PancakeSwap Infinity 交易成功:", txHash);
+        
+        // 记录交易到数据库
+        const account = walletClient.account!;
+        let txn_data = [
+          txHash,
+          account.address,
+          route.amountIn.token.symbol,
+          route.outputToken.symbol,
+          route.amountIn.toExact(),
+          "estimated_output", // TODO: 获取实际输出金额
+          getUnixTime(),
+        ];
+        
+        log(
+          `${trim(account.address)} Swap ${route.amountIn.toExact()} ${route.amountIn.token.symbol} for ${route.outputToken.symbol} via PancakeSwap Infinity \nTransaction: ${txHash} \n\n`,
+        );
+        
+        await insertDB(txn_sql, txn_data);
+        return;
+        
+      } catch (error) {
+        console.error("❌ PancakeSwap Infinity 交易失败:", error);
+        console.log("🔄 回退到 TraderJoe 路由器...");
+        // 继续执行 TraderJoe 逻辑作为回退
+      }
+    }
+    else if (routerConfig && routerConfig.type === "pancakeswap") {
+      console.log("🥞 使用 PancakeSwap V2 交易逻辑");
       const pancakeRoute = getPancakeSwapRoute({
         amount: route.amountIn.toExact(),
         inputToken: route.amountIn.token,
@@ -173,7 +215,7 @@ async function trade(walletClient: WalletClient, route: Route) {
     try {
       const { request } = await publicClient.simulateContract({
         address: router,
-        abi: LBRouterV21ABI,
+        abi: LBRouterV22ABI,
         functionName: methodName,
         args: args,
         account,

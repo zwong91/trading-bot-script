@@ -1,4 +1,4 @@
-import { Token, TokenAmount } from '@traderjoe-xyz/sdk-core';
+import { Token, TokenAmount } from '@lb-xyz/sdk-core';
 import {
     createPublicClient,
     createWalletClient,

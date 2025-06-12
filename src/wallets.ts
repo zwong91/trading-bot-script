@@ -7,7 +7,7 @@ import {
   parseEther,
   parseUnits,
 } from "viem";
-import { ERC20ABI } from "@traderjoe-xyz/sdk";
+import { ERC20ABI } from "@lb-xyz/sdk";
 import { getGasPrice, getNonce, getBalance } from "./utils";
 import log from "./fs";
 
