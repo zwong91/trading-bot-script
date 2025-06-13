@@ -12,7 +12,7 @@ import path from "path";
 // Import your local functions
 import { swapAnyTokens } from "./swapAnyTokens";
 import { addLiquidityUSDCUSDT, addLiquidityBNBUSDC } from "./addLiquidity";
-import { removeLiquidityUSDCUSDT, removeLiquidityBNBUSDC, getLiquidityInfo, removeLiquidityTraderJoeUSDCUSDT } from "./removeLiquidity";
+import { removeLiquidityUSDCUSDT} from "./removeLiquidity";
 
 dotenv.config();
 
@@ -243,25 +243,11 @@ app.post("/remove-liquidity", async (req: Request<{}, {}, RemoveLiquidityRequest
     }
 
     let txHash: string;
-    if (protocol === "traderjoe") {
-      // TraderJoe V2.2 liquidity removal
-      if (type === "usdc-usdt") {
+    if (type === "usdc-usdt") {
         console.log("Removing TraderJoe USDC-USDT liquidity:", { percentage, slippage });
-        txHash = await removeLiquidityTraderJoeUSDCUSDT(percentage.toString(), slippage);
-      } else {
-        return res.status(400).json({ error: "TraderJoe only supports 'usdc-usdt' for now" });
-      }
-    } else {
-      // PancakeSwap V2 liquidity removal (default)
-      if (type === "usdc-usdt") {
-        console.log("Removing PancakeSwap USDC-USDT liquidity:", { percentage, slippage });
         txHash = await removeLiquidityUSDCUSDT(percentage.toString(), slippage);
-      } else if (type === "bnb-usdc") {
-        console.log("Removing PancakeSwap BNB-USDC liquidity:", { percentage, slippage });
-        txHash = await removeLiquidityBNBUSDC(percentage.toString(), slippage);
-      } else {
-        return res.status(400).json({ error: "Invalid liquidity type. Use 'usdc-usdt' or 'bnb-usdc'" });
-      }
+    } else {
+        return res.status(400).json({ error: "TraderJoe only supports 'usdc-usdt' for now" });
     }
 
     console.log("Remove liquidity successful, txHash:", txHash);
@@ -274,30 +260,6 @@ app.post("/remove-liquidity", async (req: Request<{}, {}, RemoveLiquidityRequest
     });
   } catch (err: any) {
     console.error("Remove liquidity error:", err);
-    return res.status(500).json({ error: err.message });
-  }
-});
-
-// Get liquidity info endpoint
-app.get("/liquidity-info/:type", async (req: Request, res: Response) => {
-  try {
-    const { type } = req.params;
-    console.log("Received liquidity info request for type:", type);
-
-    if (!type || (type !== "usdc-usdt" && type !== "bnb-usdc")) {
-      return res.status(400).json({ error: "Invalid liquidity type. Use 'usdc-usdt' or 'bnb-usdc'" });
-    }
-
-    const liquidityInfo = await getLiquidityInfo(type);
-    console.log("Liquidity info retrieved:", liquidityInfo);
-
-    return res.json({
-      type,
-      liquidityInfo,
-      timestamp: new Date().toISOString()
-    });
-  } catch (err: any) {
-    console.error("Get liquidity info error:", err);
     return res.status(500).json({ error: err.message });
   }
 });
