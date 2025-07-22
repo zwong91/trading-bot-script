@@ -1,4 +1,4 @@
 import { startServer } from './api';
 
-// Start the TypeScript API server
-startServer(5000);
+// Start the Hono API server
+startServer(8765);
