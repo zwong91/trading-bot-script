@@ -1,6 +1,6 @@
 # Trading Bot Script
 
-This trading bot is designed to function with the TraderJoe SDK to buy and sell a specific asset in a recurring loop as set by the initiator. The bot is designed to be run on a server and will run until the loop raised to its power is ended or it errors out for any reason.
+This trading bot is designed to function with the DLMM SDK to buy and sell a specific asset in a recurring loop as set by the initiator. The bot is designed to be run on a server and will run until the loop raised to its power is ended or it errors out for any reason.
 
 The Bot is funded from a main account passed via the PRIVATE_KEY in the .env file (without the 0x) which funds other generated wallets to be used for trading. The bot will then use the generated wallets to trade the asset in the loop.
 

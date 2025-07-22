@@ -103,7 +103,7 @@ async function approveTokenIfNeeded(
 
 /**
  * swapAnyTokens swaps an exact amount of tokenIn (given by symbolIn) for tokenOut (symbolOut)
- * using the configured router (TraderJoe or PancakeSwap depending on network and availability)
+ * using the configured router (DLMM or PancakeSwap depending on network and availability)
  *
  * @param {string} symbolIn  e.g. "USDC", "USDT", "WBNB", or "BNB"
  * @param {string} symbolOut e.g. "USDC", "USDT", "WBNB", or "BNB"
@@ -140,8 +140,8 @@ export async function swapAnyTokens(symbolIn: string, symbolOut: string, amountI
         // Use the router from configuration
         const routerAddress = LB_ROUTER_V22_ADDRESS[CHAIN_ID as keyof typeof LB_ROUTER_V22_ADDRESS] || 
             (MODE === "dev" 
-                ? "0xe98efCE22A8Ec0dd5dDF6C1A81B6ADD740176E98" // TraderJoe BSC testnet
-                : "0xe98efCE22A8Ec0dd5dDF6C1A81B6ADD740176E98"); // TraderJoe BSC mainnet
+                ? "0xe98efCE22A8Ec0dd5dDF6C1A81B6ADD740176E98" // DLMM BSC testnet
+                : "0xe98efCE22A8Ec0dd5dDF6C1A81B6ADD740176E98"); // DLMM BSC mainnet
 
         const publicClient = createPublicClient({
             chain: chain,
@@ -204,7 +204,7 @@ export async function swapAnyTokens(symbolIn: string, symbolOut: string, amountI
         // Parse amountIn
         const typedValueInParsed = parseUnits(amountIn, tokenIn.decimals);
 
-        // Check if we should use PancakeSwap or TraderJoe
+        // Check if we should use PancakeSwap or DLMM
         if (routerConfig?.type === "pancakeswap") {
             console.log("🥞 Using PancakeSwap for swap");
             
@@ -220,7 +220,7 @@ export async function swapAnyTokens(symbolIn: string, symbolOut: string, amountI
             await tradePancakeSwap(walletClient, pancakeRoute, routerAddress);
             return "PancakeSwap transaction completed"; // PancakeSwap function doesn't return hash directly
         } else {
-            console.log("🎯 Using TraderJoe for swap");
+            console.log("🎯 Using DLMM for swap");
             
             // Approve if needed (only if tokenIn is not native)
             if (!isNativeIn) {

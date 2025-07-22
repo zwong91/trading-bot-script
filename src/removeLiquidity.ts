@@ -66,11 +66,11 @@ const USDT = new Token(
   "Tether USD",
 );
 
-// Bin step for TraderJoe V2.2
+// Bin step for DLMM V2.2
 const BIN_STEP = "1";
 
 /**
- * 移除 TraderJoe V2.2 USDC-USDT 流动性
+ * 移除 DLMM V2.2 USDC-USDT 流动性
  * @param {string} liquidityPercentage - 要移除的流动性百分比 (如 "50" 表示 50%)
  * @param {number} slippagePercent - 滑点容忍度百分比 (如 0.5 表示 0.5%)
  * @returns {Promise<string>} - 交易哈希
@@ -80,7 +80,7 @@ export async function removeLiquidityUSDCUSDT(
     slippagePercent: number = 0.5
 ): Promise<string> {
     try {
-        console.log("🏊‍♀️ 开始移除 TraderJoe V2.2 USDC-USDT 流动性");
+        console.log("🏊‍♀️ 开始移除 DLMM V2.2 USDC-USDT 流动性");
         console.log("   网络:", MODE === "dev" ? "BSC 测试网" : "BSC 主网");
         console.log("   移除比例:", `${liquidityPercentage}%`);
         console.log("   滑点容忍度:", `${slippagePercent}%`);
@@ -91,7 +91,7 @@ export async function removeLiquidityUSDCUSDT(
         const lbPair = await pair.fetchLBPair(binStep, pairVersion, publicClient, CHAIN_ID)
         if (lbPair.LBPair == "0x0000000000000000000000000000000000000000") {
             console.log("No LB pair found with given parameters")
-            throw new Error("TraderJoe USDC-USDT 流动性池不存在");
+            throw new Error("DLMM USDC-USDT 流动性池不存在");
         }
         const lbPairData = await PairV2.getLBPairReservesAndId(lbPair.LBPair, pairVersion, publicClient)
         const activeBinId = Number(lbPairData.activeId)

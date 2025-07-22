@@ -42,8 +42,8 @@ npm run test:help
 | 日志系统 | `test-logger.ts` | 日志记录、文件写入 | 🔴 关键 |
 | 路由器功能 | `test-router.ts` | 网络连接、路由器选择 | 🔴 关键 |
 | 数据库钱包 | `test-database-wallet.ts` | 数据库连接、钱包管理 | 🔴 关键 |
-| 流动性添加 | `test-add-liquidity.ts` | TraderJoe流动性添加 | 🔴 关键 |
-| 流动性移除 | `test-remove-liquidity.ts` | TraderJoe流动性移除 | 🔴 关键 |
+| 流动性添加 | `test-add-liquidity.ts` | DLMM流动性添加 | 🔴 关键 |
+| 流动性移除 | `test-remove-liquidity.ts` | DLMM流动性移除 | 🔴 关键 |
 
 ### 🟡 可选测试（可以跳过）
 
@@ -153,7 +153,7 @@ WBNB: 0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd
 
 ### 路由器地址
 ```javascript
-TraderJoe V2.2: 0xe98efCE22A8Ec0dd5dDF6C1A81B6ADD740176E98
+DLMM V2.2: 0xe98efCE22A8Ec0dd5dDF6C1A81B6ADD740176E98
 PancakeSwap V2: 0xD99D1c33F9fC3444f8101754aBC46c52416550D1
 ```
 

@@ -110,7 +110,7 @@ async function testSwapAnyTokens() {
     
     console.log("\n🎯 路由策略:");
     console.log("   🥞 PancakeSwap: 大部分主流交换对");
-    console.log("   🎯 TraderJoe: 专业流动性和集中流动性");
+    console.log("   🎯 DLMM: 专业流动性和集中流动性");
     console.log("   📊 自动选择最优价格路径");
     
     console.log("\n📊 使用方法:");

@@ -128,8 +128,8 @@ async function trade(walletClient: WalletClient, route: Route) {
         
       } catch (error) {
         console.error("❌ PancakeSwap Infinity 交易失败:", error);
-        console.log("🔄 回退到 TraderJoe 路由器...");
-        // 继续执行 TraderJoe 逻辑作为回退
+        console.log("🔄 回退到 DLMM 路由器...");
+        // 继续执行 DLMM 逻辑作为回退
       }
     }
     else if (routerConfig && routerConfig.type === "pancakeswap") {
@@ -145,8 +145,8 @@ async function trade(walletClient: WalletClient, route: Route) {
       return;
     }
     
-    // TraderJoe 交易逻辑
-    console.log("🎯 使用 TraderJoe 交易逻辑");
+    // DLMM 交易逻辑
+    console.log("🎯 使用 DLMM 交易逻辑");
     const account = walletClient.account!;
     const {
       allRoutes,

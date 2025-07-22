@@ -51,14 +51,14 @@ const TEST_CONFIGS: TestConfig[] = [
     {
         name: "流动性添加",
         file: "test-add-liquidity.ts",
-        description: "测试TraderJoe V2.2流动性添加功能",
+        description: "测试DLMM V2.2流动性添加功能",
         critical: true,
         timeout: 120000
     },
     {
         name: "流动性移除", 
         file: "test-remove-liquidity.ts",
-        description: "测试TraderJoe V2.2流动性移除功能",
+        description: "测试DLMM V2.2流动性移除功能",
         critical: true,
         timeout: 90000
     },
@@ -72,7 +72,7 @@ const TEST_CONFIGS: TestConfig[] = [
     {
         name: "BNB-USDC专项",
         file: "test-bnb-usdc.ts",
-        description: "测试TraderJoe BNB-USDC流动性功能",
+        description: "测试DLMM BNB-USDC流动性功能",
         critical: false,
         timeout: 150000
     }

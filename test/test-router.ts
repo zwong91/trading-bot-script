@@ -16,9 +16,9 @@ const ROUTERS = {
   PANCAKESWAP_INFINITY: MODE === "dev" 
     ? "0x1b81D678ffb9C0263b24A97847620C99d213eB14" // BSC测试网 Infinity
     : "0x13f4EA83D0bd40E75C8222255bc855a974568Dd4", // BSC主网 Infinity
-  TRADERJOE: MODE === "dev"
-    ? "0xe98efCE22A8Ec0dd5dDF6C1A81B6ADD740176E98" // BSC测试网 TraderJoe
-    : "0xe98efCE22A8Ec0dd5dDF6C1A81B6ADD740176E98"  // BSC主网 TraderJoe
+  DLMM: MODE === "dev"
+    ? "0xe98efCE22A8Ec0dd5dDF6C1A81B6ADD740176E98" // BSC测试网 DLMM
+    : "0xe98efCE22A8Ec0dd5dDF6C1A81B6ADD740176E98"  // BSC主网 DLMM
 };
 
 // Token addresses
@@ -54,8 +54,8 @@ const INFINITY_ROUTER_ABI = [
   "function positionManager() external view returns (address)"
 ];
 
-// TraderJoe V2.2 ABI
-const TRADERJOE_ROUTER_ABI = [
+// DLMM V2.2 ABI
+const DLMM_ROUTER_ABI = [
   "function getFactory() external view returns (address)",
   "function getWNATIVE() external view returns (address)",
   "function getIdFromPriceX128(uint256 priceX128) external pure returns (uint24)"
@@ -110,10 +110,10 @@ async function testAllRouters() {
       wethMethod: "WETH9"
     },
     { 
-      name: "TraderJoe V2.2", 
-      type: "traderjoe", 
-      address: ROUTERS.TRADERJOE,
-      abi: TRADERJOE_ROUTER_ABI,
+      name: "DLMM V2.2", 
+      type: "dlmm", 
+      address: ROUTERS.DLMM,
+      abi: DLMM_ROUTER_ABI,
       factoryMethod: "getFactory",
       wethMethod: "getWNATIVE"
     }
@@ -127,7 +127,7 @@ async function testAllRouters() {
       // Test basic contract connectivity with appropriate methods
       let factory, weth;
       
-      if (router.type === "traderjoe") {
+      if (router.type === "dlmm") {
         factory = await routerContract.getFactory();
         weth = await routerContract.getWNATIVE();
       } else if (router.type === "pancakeswap-infinity") {
@@ -164,9 +164,9 @@ async function testAllRouters() {
         }
       }
       
-      if (router.type === "traderjoe") {
+      if (router.type === "dlmm") {
         try {
-          // Test TraderJoe specific function
+          // Test DLMM specific function
           const samplePriceX128 = "79228162514264337593543950336"; // price = 1
           const id = await routerContract.getIdFromPriceX128(samplePriceX128);
           console.log(`      价格ID转换测试: ${id} ✅`);
@@ -266,14 +266,14 @@ async function main() {
   console.log("🎯 测试总结:");
   console.log("   ✅ 网络连接性测试 - 检查BSC网络状态");
   console.log("   🪙 代币连接性测试 - 验证USDT、USDC、WBNB、ETH");
-  console.log("   🔄 路由器可用性测试 - PancakeSwap、TraderJoe");
+  console.log("   🔄 路由器可用性测试 - PancakeSwap、DLMM");
   console.log("   🎲 动态选择测试 - 自动选择最佳路由器");
   
   console.log("\n💡 使用提示:");
   console.log("   - 如果所有测试通过，可以运行: npm run init");
   console.log("   - 如果网络测试失败，请检查网络连接");
   console.log("   - 如果路由器测试失败，系统会自动选择可用的路由器");
-  console.log("   - 系统支持PancakeSwap V2、PancakeSwap Infinity和TraderJoe V2.2");
+  console.log("   - 系统支持PancakeSwap V2、PancakeSwap Infinity和DLMM V2.2");
   
   console.log("\n🔧 故障排除:");
   console.log("   - 网络错误: 检查RPC连接和网络状态");

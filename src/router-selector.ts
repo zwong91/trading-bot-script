@@ -2,14 +2,14 @@ import { LB_ROUTER_V22_ADDRESS } from "@lb-xyz/sdk-v2";
 
 interface RouterConfig {
   address: string;
-  type: "traderjoe" | "pancakeswap-infinity" | "pancakeswap";
+  type: "dlmm" | "pancakeswap-infinity" | "pancakeswap";
   name: string;
   isValid: boolean;
 }
 
 export async function selectBestRouter(chainId: number, mode: string, publicClient: any): Promise<RouterConfig> {
-  // TraderJoe 路由器地址
-  const traderJoeRouter = LB_ROUTER_V22_ADDRESS[chainId as keyof typeof LB_ROUTER_V22_ADDRESS];
+  // DLMM 路由器地址
+  const DLMMRouter = LB_ROUTER_V22_ADDRESS[chainId as keyof typeof LB_ROUTER_V22_ADDRESS];
   
   // PancakeSwap Infinity 路由器地址 (最新版本)
   const pancakeInfinityRouter = mode === "dev" 
@@ -30,16 +30,16 @@ export async function selectBestRouter(chainId: number, mode: string, publicClie
   // 检查 PancakeSwap Infinity 路由器
   const infinityValid = await checkRouterValidity(pancakeInfinityRouter, "PancakeSwap Infinity", publicClient);
   
-  // 检查 TraderJoe 路由器
-  const traderJoeValid = await checkRouterValidity(traderJoeRouter, "TraderJoe", publicClient);
+  // 检查 DLMM 路由器
+  const DLMMValid = await checkRouterValidity(DLMMRouter, "DLMM", publicClient);
 
-  // 选择策略 - 测试网优先使用TraderJoe V2.2 (自己的流动性)
-  if (traderJoeValid) {
-    console.log("🎯 选择策略: 使用 TraderJoe V2.2");
+  // 选择策略 - 测试网优先使用DLMM V2.2 (自己的流动性)
+  if (DLMMValid) {
+    console.log("🎯 选择策略: 使用 DLMM V2.2");
     return {
-      address: traderJoeRouter,
-      type: "traderjoe",
-      name: "TraderJoe V2.2",
+      address: DLMMRouter,
+      type: "dlmm",
+      name: "DLMM V2.2",
       isValid: true
     };
   } else if (infinityValid) {
@@ -108,8 +108,8 @@ async function checkRouterValidity(routerAddress: string, routerName: string, pu
 }
 
 // 路由器兼容性检查
-export function getRouterInterface(routerType: "traderjoe" | "pancakeswap-infinity" | "pancakeswap") {
-  if (routerType === "traderjoe") {
+export function getRouterInterface(routerType: "dlmm" | "pancakeswap-infinity" | "pancakeswap") {
+  if (routerType === "dlmm") {
     return {
       swapFunction: "swapExactTokensForTokens",
       approveFunction: "approve",

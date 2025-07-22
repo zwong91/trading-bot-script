@@ -54,11 +54,11 @@ const walletClient = createWalletClient({
 
 const { LBRouterV22ABI } = jsonAbis;
 
-// TraderJoe LB V22 router address for BSC
-const traderJoeRouterAddress = LB_ROUTER_V22_ADDRESS[CHAIN_ID as keyof typeof LB_ROUTER_V22_ADDRESS] || 
+// DLMM LB V22 router address for BSC
+const DLMMRouterAddress = LB_ROUTER_V22_ADDRESS[CHAIN_ID as keyof typeof LB_ROUTER_V22_ADDRESS] || 
     (MODE === "dev" 
-        ? "0xe98efCE22A8Ec0dd5dDF6C1A81B6ADD740176E98" // BSC测试网 TraderJoe
-        : "0xe98efCE22A8Ec0dd5dDF6C1A81B6ADD740176E98"  // BSC主网 TraderJoe
+        ? "0xe98efCE22A8Ec0dd5dDF6C1A81B6ADD740176E98" // BSC测试网 DLMM
+        : "0xe98efCE22A8Ec0dd5dDF6C1A81B6ADD740176E98"  // BSC主网 DLMM
     );
 
 // ERC20 ABI for approvals
@@ -86,7 +86,7 @@ const minimalERC20Abi = [
 ] as const;
 
 /**
- * 使用TraderJoe V2.2在BSC上添加USDC-USDT流动性
+ * 使用DLMM V2.2在BSC上添加USDC-USDT流动性
  * @param {string} binStep - LB pair的bin step (例如 "1", "5", "10" 等)
  * @param {string} usdcAmount - USDC数量 (例如 "0.01")
  * @param {string} usdtAmount - USDT数量 (例如 "0.01")
@@ -98,9 +98,9 @@ export async function addLiquidityUSDCUSDT(
     usdtAmount: string = "1.0"
 ): Promise<string> {
     try {
-        logger.info("🏊‍♂️ 开始使用TraderJoe V2.2添加 USDC-USDT 流动性");
+        logger.info("🏊‍♂️ 开始使用DLMM V2.2添加 USDC-USDT 流动性");
         logger.info(`   网络: ${MODE === "dev" ? "BSC 测试网" : "BSC 主网"}`);
-        logger.info(`   TraderJoe路由器地址: ${traderJoeRouterAddress}`);
+        logger.info(`   DLMM路由器地址: ${DLMMRouterAddress}`);
 
         // 定义BSC上的代币 (18位小数)
         const USDC = new Token(
@@ -181,8 +181,8 @@ export async function addLiquidityUSDCUSDT(
 
         // 批准代币支出
         logger.info("\n📝 批准代币支出...");
-        await approveTokenIfNeeded(USDC.address, traderJoeRouterAddress, typedValueUSDCParsed);
-        await approveTokenIfNeeded(USDT.address, traderJoeRouterAddress, typedValueUSDTParsed);
+        await approveTokenIfNeeded(USDC.address, DLMMRouterAddress, typedValueUSDCParsed);
+        await approveTokenIfNeeded(USDT.address, DLMMRouterAddress, typedValueUSDTParsed);
 
         // 构建addLiquidity参数
         const currentTimeInSec = Math.floor(Date.now() / 1000);
@@ -207,11 +207,11 @@ export async function addLiquidityUSDCUSDT(
             deadline
         };
 
-        logger.info("\n🔄 执行TraderJoe添加流动性交易...");
+        logger.info("\n🔄 执行DLMM添加流动性交易...");
 
         // 模拟和执行交易
         const { request } = await publicClient.simulateContract({
-            address: traderJoeRouterAddress as `0x${string}`,
+            address: DLMMRouterAddress as `0x${string}`,
             abi: LBRouterV22ABI,
             functionName: "addLiquidity",
             args: [addLiquidityInput],
@@ -219,23 +219,23 @@ export async function addLiquidityUSDCUSDT(
         });
 
         const txHash = await walletClient.writeContract(request);
-        logger.success(`✅ TraderJoe流动性添加交易已发送! 哈希: ${txHash}`);
+        logger.success(`✅ DLMM流动性添加交易已发送! 哈希: ${txHash}`);
 
         // 等待确认
         const receipt = await publicClient.waitForTransactionReceipt({ 
             hash: txHash as `0x${string}` 
         });
-        logger.success(`🎉 TraderJoe流动性添加成功! 区块: ${receipt.blockNumber}`);
+        logger.success(`🎉 DLMM流动性添加成功! 区块: ${receipt.blockNumber}`);
 
         return txHash;
     } catch (error) {
-        logger.error("❌ TraderJoe添加流动性失败:", error instanceof Error ? error.message : String(error));
+        logger.error("❌ DLMM添加流动性失败:", error instanceof Error ? error.message : String(error));
         throw error;
     }
 }
 
 /**
- * 使用TraderJoe V2.2在BSC上添加BNB-USDC流动性
+ * 使用DLMM V2.2在BSC上添加BNB-USDC流动性
  * @param {string} binStep - LB pair的bin step (例如 "25", "50", "100" 等)
  * @param {string} bnbAmount - BNB数量 (例如 "0.01")
  * @param {string} usdcAmount - USDC数量 (例如 "3.0")
@@ -247,9 +247,9 @@ export async function addLiquidityBNBUSDC(
     usdcAmount: string = "3.0"
 ): Promise<string> {
     try {
-        logger.info("🏊‍♂️ 开始使用TraderJoe V2.2添加 BNB-USDC 流动性");
+        logger.info("🏊‍♂️ 开始使用DLMM V2.2添加 BNB-USDC 流动性");
         logger.info(`   网络: ${MODE === "dev" ? "BSC 测试网" : "BSC 主网"}`);
-        logger.info(`   TraderJoe路由器地址: ${traderJoeRouterAddress}`);
+        logger.info(`   DLMM路由器地址: ${DLMMRouterAddress}`);
 
         // 定义BSC上的代币
         const WBNB = new Token(
@@ -343,8 +343,8 @@ export async function addLiquidityBNBUSDC(
         await wrapBNBIfNeeded(typedValueBNBParsed);
         
         // 批准WBNB和USDC支出
-        await approveTokenIfNeeded(USDC.address, traderJoeRouterAddress, typedValueUSDCParsed);
-        await approveTokenIfNeeded(WBNB.address, traderJoeRouterAddress, typedValueBNBParsed);
+        await approveTokenIfNeeded(USDC.address, DLMMRouterAddress, typedValueUSDCParsed);
+        await approveTokenIfNeeded(WBNB.address, DLMMRouterAddress, typedValueBNBParsed);
 
         // 构建addLiquidity参数
         const currentTimeInSec = Math.floor(Date.now() / 1000);
@@ -368,11 +368,11 @@ export async function addLiquidityBNBUSDC(
             deadline
         };
 
-        logger.info("\n🔄 执行TraderJoe BNB-USDC流动性添加交易...");
+        logger.info("\n🔄 执行DLMM BNB-USDC流动性添加交易...");
 
         // 模拟和执行交易
         const { request } = await publicClient.simulateContract({
-            address: traderJoeRouterAddress as `0x${string}`,
+            address: DLMMRouterAddress as `0x${string}`,
             abi: LBRouterV22ABI,
             functionName: "addLiquidity",
             args: [addLiquidityInput],
@@ -380,17 +380,17 @@ export async function addLiquidityBNBUSDC(
         });
 
         const txHash = await walletClient.writeContract(request);
-        logger.success(`✅ TraderJoe BNB-USDC流动性添加交易已发送! 哈希: ${txHash}`);
+        logger.success(`✅ DLMM BNB-USDC流动性添加交易已发送! 哈希: ${txHash}`);
 
         // 等待确认
         const receipt = await publicClient.waitForTransactionReceipt({ 
             hash: txHash as `0x${string}` 
         });
-        logger.success(`🎉 TraderJoe BNB-USDC流动性添加成功! 区块: ${receipt.blockNumber}`);
+        logger.success(`🎉 DLMM BNB-USDC流动性添加成功! 区块: ${receipt.blockNumber}`);
 
         return txHash;
     } catch (error) {
-        logger.error("❌ TraderJoe BNB-USDC添加流动性失败:", error instanceof Error ? error.message : String(error));
+        logger.error("❌ DLMM BNB-USDC添加流动性失败:", error instanceof Error ? error.message : String(error));
         throw error;
     }
 }
