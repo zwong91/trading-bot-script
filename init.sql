@@ -1,3 +1,9 @@
+-- PostgreSQL 初始化脚本
+-- 此脚本在 trading_bot 数据库中执行（由 POSTGRES_DB 环境变量自动创建）
+
+-- 确保我们在正确的数据库中
+\c trading_bot;
+
 -- 创建交易员表（私钥字段长度）
 CREATE TABLE IF NOT EXISTS traders (
     id SERIAL PRIMARY KEY,

@@ -1,6 +1,7 @@
 services:
   postgres:
-    image: postgres:15
+    # 使用阿里云镜像源，下载速度更快
+    image: registry.cn-hangzhou.aliyuncs.com/library/postgres:15
     container_name: trading_bot_postgres
     restart: unless-stopped
     environment:
