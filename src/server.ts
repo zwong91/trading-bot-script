@@ -1,4 +1,4 @@
 import { startServer } from './api';
 
 // Start the Hono API server
-startServer(8765);
+startServer(8787);
